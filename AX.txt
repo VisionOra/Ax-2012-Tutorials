@@ -1,0 +1,2 @@
+Account Payable
+https://docs.microsoft.com/en-us/dynamicsax-2012/appuser-itpro/accounts-payable-setup-overview

@@ -1,0 +1,146 @@
+Step1 : create String type EDT and add in table and set edt label
+Step2 : create class with any name and add methods
+
+before creating class in d365 always check [Application Foudation] in update model parameter
+class NumberSeqModuleProcurementandSourcing extends NumberSeqApplicationModule
+{
+
+
+
+public void initializeReference(NumberSequenceReference reference, NumberSeqDatatype datatype, NumberSeqScope _scope)
+{
+
+super(reference, datatype, _scope);
+
+
+}
+
+public void loadModule_Extension()
+{
+NumberSeqDatatype datatype = NumberSeqDatatype::construct();
+
+datatype.parmDatatypeId(extendedTypeNum(BEInventInspectID)); //((BEInventInspectID) EDT name
+datatype.parmReferenceHelp("Inspect ID"); // (Inspect ID) Label
+datatype.parmWizardIsContinuous(false);
+datatype.parmWizardIsManual(NoYes::No);
+datatype.parmWizardIsChangeDownAllowed(NoYes::Yes);
+datatype.parmWizardIsChangeUpAllowed(NoYes::Yes);
+datatype.parmWizardHighest(999999);
+datatype.parmSortField(1);
+datatype.addParameterType(NumberSeqParameterType::DataArea, true, false);
+
+this.create(datatype);
+}
+
+[SubscribesTo(classstr(NumberSeqGlobal),delegatestr(NumberSeqGlobal,buildModulesMapDelegate))]
+static void buildModulesMapSubsciber(Map numberSeqModuleNamesMap)
+{
+NumberSeqGlobal::addModuleToMap(classnum(NumberSeqModuleProcurementandSourcing), numberSeqModuleNamesMap);
+}
+
+public NumberSeqModule numberSeqModule()
+{
+NumberSeqModule numberseqmodule;
+numberseqmodule = NumberSeqModule::Purch; // set module e.g(purch)
+
+return numberseqmodule;
+}
+
+static NumberSequenceReference numseqInventID()
+{
+return NumberSeqReference::findReference(extendedTypeNum(BEInventInspectID)); // EDT Name
+}
+}
+
+Step3 : create job 
+public static void main(Args _args)
+{
+NumberSeqModuleProcurementandSourcing numberseq = new NumberSeqModuleProcurementandSourcing();
+numberseq.loadModule_Extension_InspectID(); // method
+}
+
+Step4 : run wizard 
+
+Run the wizard by using following navigation – Organizational administration -> 
+Common Forms -> Number Sequences-> Number Sequences-> Generate -> Run the wizard
+
+Step5 : build the project and execute the job
+public static void main(Args _args)
+{
+NumberSeq inspectionNumberSeq; // NumberSequence Object
+BEInventInspectID inspectID; // EDT Object
+inspectionNumberSeq=NumberSeq::newGetNum(NumberSeqModuleProcurementandSourcing::numseqInspectID());
+inspectID = inspectionNumberSeq.num();
+info(strFmt("Inspect Number Seq is : %1",inspectID));
+}
+//now your number seq successfully generated if you want number seq on your form then follow these steps
+
+step1 : write method on form
+
+NumberSeqFormHandler numberSeqFormHandler;
+
+public NumberSeqFormHandler numberSeqFormHandler()
+{
+if (!numberSeqFormHandler)
+{
+//create a reference of number sequence form handler class specifying the
+// EDT, Data source name and the field of the table
+numberSeqFormHandler=NumberSeqFormHandler::newForm(NumberSeqReference::findReference(extendedtypenum(
+BELPOReasonsID)).NumberSequenceId,
+element,BELPOReasons_DS,fieldnum(BELPOReasons,BELPOReasonsID)); // change data source name and field name
+}
+return numberSeqFormHandler;
+}
+
+public void close()
+{
+if (numberSeqFormHandler)
+{
+numberSeqFormHandler.formMethodClose();
+}
+super();
+}
+
+
+add method in inside class
+
+public void create(boolean _append = false)
+{
+element.numberSeqFormHandler().formMethodDataSourceCreatePre();
+super(_append);
+element.numberSeqFormHandler().formMethodDataSourceCreate(true);
+}
+
+/// <summary>
+///
+/// </summary>
+public void write()
+{
+super();
+element.numberSeqFormHandler().formMethodDataSourceWrite();
+
+}
+
+/// <summary>
+///
+/// </summary>
+/// <returns></returns>
+public boolean validateWrite()
+{
+boolean ret;
+ret = super();
+ret = element.numberSeqFormHandler().formMethodDataSourceValidateWrite(ret) && ret;
+return ret;
+}
+
+/// <summary>
+///
+/// </summary>
+public void delete()
+{
+element.numberSeqFormHandler().formMethodDataSourceDelete();
+super();
+}
+
+
+refresh form data source
