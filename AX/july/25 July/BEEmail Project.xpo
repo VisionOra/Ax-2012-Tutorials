@@ -1,0 +1,5372 @@
+﻿Exportfile for AOT version 1.0 or later
+Formatversion: 1
+
+***Element: FRM
+
+; Microsoft Dynamics AX Forms unloaded
+; --------------------------------------------------------------------------------
+FRMVERSION 12
+
+FORM #DAPParameters
+  PROPERTIES
+    Name                #DAPParameters
+    Origin              #{C9780B38-518D-4901-8623-BCC3436506EB}
+  ENDPROPERTIES
+  
+  METHODS
+    SOURCE #classDeclaration
+      #public class FormRun extends ObjectRun
+      #{
+      #    SysFormSplitter_Y           _formSplitterVertical;
+      #
+      #
+      #    NumberSeqReference  numberSeqReference;
+      #    boolean             runExecuteDirect;
+      #    TmpIdRef            tmpIdRef;
+      #    NumberSeqScope             scope;
+      #    NumberSeqApplicationModule numberSeqApplicationModule;
+      #    container                  numberSequenceModules;
+      #    LedgerDimensionDefaultAccountController ledgerDimensionDefaultAccountController;
+      #    LedgerDimensionDefaultAccountController  leaveAC,LoanAC,TicketAC,EOSAC;
+      #}
+    ENDSOURCE
+    SOURCE #enableDisableAbsenceControls
+      #void enableDisableAbsenceControls(DAPAbsenceParameters _parameters = DAPAbsenceParameters)
+      #{
+      #    boolean enable;
+      #
+      #    enable = false && _parameters.AllowedFixedNoMinutes > 0;
+      #    DAPParameters_ds.object(fieldNum(DAPAbsenceParameters,DAPMonthPeriod)).enabled(enable);
+      #    DAPParameters_ds.object(fieldNum(DAPAbsenceParameters,Code)).enabled(enable && _parameters.DAPMonthPeriod != DAPMonthPeriod::Month);
+      #    DAPParameters_ds.object(fieldNum(DAPAbsenceParameters,CalculationId)).visible(enable);
+      #    DAPParameters_ds.object(fieldNum(DAPAbsenceParameters,DAPPenaltyDeductionMethod)).enabled(enable);
+      #}
+    ENDSOURCE
+    SOURCE #enableDisableEoSSIControl
+      #void enableDisableEoSSIControl(DAPEosParameters _parameters = DAPEoSParameters)
+      #{
+      #    DAPEosParameters_ds.object(fieldNum(DAPEosParameters,PaymentId)).enabled(_parameters.EoSCalculationMethod == DAPEoSCalculationMethod::SIPayment);
+      #    DAPEosParameters_ds.object(fieldNum(DAPEosParameters,EoSAccruedPercent)).enabled(_parameters.EoSCalculationMethod == DAPEoSCalculationMethod::SIPayment);
+      #}
+    ENDSOURCE
+    SOURCE #enableDisableTaxAccumulativeControl
+      #void enableDisableTaxAccumulativeControl(DAPTaxParameters _parameters = DAPTaxParameters)
+      #{
+      #    DAPTaxParameters_ds.object(fieldNum(DAPTaxParameters,AccumulationStartMonth)).enabled(_parameters.isAccumulative);
+      #}
+    ENDSOURCE
+    SOURCE #enableDisableTicketControls
+      #void enableDisableTicketControls(DAPParameters _parameters = DAPParameters)
+      #{
+      #    DAPParameters_ds.object(fieldNum(DAPParameters,AnnualLeaveTicketPercent)).enabled(_parameters.AnnualLeaveTicket);
+      #    DAPParameters_ds.object(fieldNum(DAPParameters,UnPaidLeaveTicketPercent)).enabled(_parameters.UnPaidLeaveTicket);
+      #    DAPParameters_ds.object(fieldNum(DAPParameters,CashLeaveTicketPercent)).enabled(_parameters.CashLeaveTicket);
+      #}
+    ENDSOURCE
+    SOURCE #init
+      #public void init()
+      #{
+      #    DAPParameters parameters;
+      #    DAPEosParameters eosParameters;
+      #    DAPTaxParameters taxParameters;
+      #    this.numberSeqPreInit();
+      #    super();
+      #    this.numberSeqPostInit();
+      #
+      #    parameters = DAPParameters::find();
+      #    DAPMailParameters::find();
+      #    DAPPostingJournalNames::find();
+      #    DAPGOSIParameters::find();
+      #    DAPReportsParameters::find();
+      #    DAPAccrualsLedgerSetup::find();
+      #    DAPTimeSheetParameters::find();
+      #    DAPAbsenceParameters::find();
+      #    eosParameters = DAPEosParameters::find();
+      #    taxParameters = DAPTaxParameters::find();
+      #
+      #    element.enableDisableTicketControls(parameters);
+      #    element.enableDisableEoSSIControl(eosParameters);
+      #    element.enableDisableTaxAccumulativeControl(taxParameters);
+      #    element.enableDisableAbsenceControls(DAPAbsenceParameters);
+      #
+      #
+      #    ledgerDimensionDefaultAccountController = LedgerDimensionDefaultAccountController::construct(DAPParameters_ds,
+      #                                    fieldstr(DAPParameters, CashLedgerAccount));
+      #    leaveAC = LedgerDimensionDefaultAccountController::construct(DAPParameters_ds, fieldStr(DAPParameters, LeaveOffsetAccount));
+      #    LoanAC = LedgerDimensionDefaultAccountController::construct(DAPParameters_ds, fieldStr(DAPParameters, LoansOffsetAccount));
+      #    TicketAC = LedgerDimensionDefaultAccountController::construct(DAPParameters_ds, fieldStr(DAPParameters, TicketOffsetAccount));
+      #    EOSAC = LedgerDimensionDefaultAccountController::construct(DAPParameters_ds, fieldStr(DAPParameters, EOSOffsetAcct));
+      #
+      #}
+    ENDSOURCE
+    SOURCE #lookup
+      #CCColor lookup(FormIntControl formIntControl)
+      #{
+      #    #DEFINE.COLORVALUE (64)
+      #    int             r, g, b;
+      #    container       chosenColor;
+      #    Binary          customColors        = new Binary(#COLORVALUE);
+      #    CCColor         colorValue;
+      #
+      #
+      #    [r, g, b]   = WinAPI::RGBint2Con(formIntControl.backgroundColor());
+      #    chosenColor = WinAPI::chooseColor(element.hWnd(), r, g, b, customColors, true);
+      #    if (chosenColor)
+      #    {
+      #        [r, g, b] = chosenColor;
+      #        colorValue  = WinAPI::RGB2int(r, g, b);
+      #
+      #        formIntControl.backgroundColor(colorValue);
+      #        return colorValue;
+      #    }
+      #    return 0;
+      #}
+      #
+    ENDSOURCE
+    SOURCE #numberSeqPostInit
+      #void numberSeqPostInit()
+      #{
+      #    numberSequenceReference_AllowSameAs.visible(numberSeqApplicationModule.sameAsActive());
+      #    referenceSameAsLabel.visible(numberSequenceReference_AllowSameAs.visible());
+      #}
+    ENDSOURCE
+    SOURCE #numberSeqPreInit
+      #void numberSeqPreInit()
+      #{
+      #    runExecuteDirect   = false;
+      #
+      #    numberSequenceModules = [NumberSeqModule::DAPPayroll];
+      #    numberSeqApplicationModule = new NumberSeqModuleDAP();
+      #    scope = NumberSeqScopeFactory::createDataAreaScope();
+      #    NumberSeqApplicationModule::createReferencesMulti(numberSequenceModules, scope);
+      #    tmpIdRef.setTmpData(NumberSequenceReference::configurationKeyTableMulti(numberSequenceModules));
+      #}
+    ENDSOURCE
+    SOURCE #numRefPlanNumber
+      #void numRefPlanNumber()
+      #{
+      #    runExecuteDirect   = false;
+      #    tmpIdRef.setTmpData(NumberSequenceReference::configurationKeyTableMulti(numberSequenceModules));
+      #}
+    ENDSOURCE
+  ENDMETHODS
+  OBJECTBANK
+    PROPERTIES
+    ENDPROPERTIES
+    
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #DAPParameters
+          Table               #DAPParameters
+          AllowCheck          #No
+          AllowCreate         #No
+          AllowDelete         #No
+          InsertAtEnd         #No
+          InsertIfEmpty       #No
+        ENDPROPERTIES
+        
+        FIELDLIST
+          REFERENCEFIELD CashLedgerAccount
+            PROPERTIES
+            ENDPROPERTIES
+            
+            METHODS
+              SOURCE #resolveReference
+                #public Common resolveReference(FormReferenceControl _formReferenceControl)
+                #{
+                #    return ledgerDimensionDefaultAccountController.resolveReference();
+                #}
+              ENDSOURCE
+            ENDMETHODS
+          ENDREFERENCEFIELD
+          
+          REFERENCEFIELD TicketOffsetAccount
+            PROPERTIES
+            ENDPROPERTIES
+            
+            METHODS
+              SOURCE #resolveReference
+                #public Common resolveReference(FormReferenceControl _formReferenceControl)
+                #{
+                #    return TicketAC.resolveReference();
+                #}
+              ENDSOURCE
+            ENDMETHODS
+          ENDREFERENCEFIELD
+          
+          REFERENCEFIELD LeaveOffsetAccount
+            PROPERTIES
+            ENDPROPERTIES
+            
+            METHODS
+              SOURCE #resolveReference
+                #public Common resolveReference(FormReferenceControl _formReferenceControl)
+                #{
+                #    return leaveAC.resolveReference();
+                #}
+              ENDSOURCE
+            ENDMETHODS
+          ENDREFERENCEFIELD
+          
+          REFERENCEFIELD EOSOffsetAcct
+            PROPERTIES
+            ENDPROPERTIES
+            
+            METHODS
+              SOURCE #resolveReference
+                #public Common resolveReference(FormReferenceControl _formReferenceControl)
+                #{
+                #    return EOSAC.resolveReference();
+                #}
+              ENDSOURCE
+            ENDMETHODS
+          ENDREFERENCEFIELD
+          
+          REFERENCEFIELD LoansOffsetAccount
+            PROPERTIES
+            ENDPROPERTIES
+            
+            METHODS
+              SOURCE #resolveReference
+                #public Common resolveReference(FormReferenceControl _formReferenceControl)
+                #{
+                #    return LoanAC.resolveReference();
+                #}
+              ENDSOURCE
+            ENDMETHODS
+          ENDREFERENCEFIELD
+          
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+        SOURCE #ExecforeColor
+          #edit CCColor ExecforeColor(boolean set, CCColor CCColor)
+          #{
+          #    ExecFore.backgroundColor(DAPParameters.ExecuseForecolor);
+          #    return 0;
+          #}
+        ENDSOURCE
+        SOURCE #ExecbackgroundColor
+          #//BP Deviation Documented
+          #edit CCColor ExecbackgroundColor(boolean set, CCColor CCColor)
+          #{
+          #    ExecBack.backgroundColor(DAPParameters.ExecusebackgroundColor);
+          #    return 0;
+          #}
+        ENDSOURCE
+        SOURCE #BusTripbackgroundColor
+          #//BP Deviation Documented
+          #edit CCColor BusTripbackgroundColor(boolean set, CCColor CCColor)
+          #{
+          #    BusTripBack.backgroundColor(DAPParameters.BusTripbackgroundColor);
+          #    return 0;
+          #}
+        ENDSOURCE
+        SOURCE #BusTripforeColor
+          #edit CCColor BusTripforeColor(boolean set, CCColor CCColor)
+          #{
+          #    BusTripFore.backgroundColor(DAPParameters.BusTripforeColor);
+          #    return 0;
+          #}
+        ENDSOURCE
+        SOURCE #foreColor
+          #//BP Deviation Documented
+          #edit CCColor foreColor(boolean set, CCColor CCColor)
+          #{
+          #    CopyOfforeColor.backgroundColor(DAPParameters.LeaveforeColor);
+          #    return 0;
+          #}
+        ENDSOURCE
+        SOURCE #backgroundColor
+          #//BP Deviation Documented
+          #edit CCColor backgroundColor(boolean set, CCColor CCColor)
+          #{
+          #    CopyOfbackgroundColor.backgroundColor(DAPParameters.LeaveBackgroundColor);
+          #    return 0;
+          #}
+        ENDSOURCE
+        SOURCE #displayOption
+          #public void displayOption(Common _record, FormRowDisplayOption _options)
+          #{
+          #    //super(_record, _options);
+          #    DAPParameters           parm;
+          #
+          #    parm      = _record;
+          #    if(_options)
+          #    {
+          #        _options.backColor(parm.leavebackgroundColor);
+          #        _options.affectedElementsByControl(CopyOfbackgroundColor.id());
+          #        _options.affectedElementsByControl(CopyOfforeColor.id());
+          #
+          #        _options.textColor(parm.leaveforeColor);
+          #        _options.affectedElementsByControl(CopyOfbackgroundColor.id());
+          #        _options.affectedElementsByControl(CopyOfforeColor.id());
+          #
+          #        _options.backColor(parm.ExecusebackgroundColor);
+          #        _options.affectedElementsByControl(ExecBack.id());
+          #        _options.affectedElementsByControl(ExecFore.id());
+          #
+          #        _options.textColor(parm.ExecuseForecolor);
+          #        _options.affectedElementsByControl(ExecBack.id());
+          #        _options.affectedElementsByControl(ExecFore.id());
+          #
+          #        _options.backColor(parm.BusTripbackgroundColor);
+          #        _options.affectedElementsByControl(BusTripBack.id());
+          #        _options.affectedElementsByControl(BusTripFore.id());
+          #
+          #        _options.textColor(parm.BusTripforeColor);
+          #        _options.affectedElementsByControl(BusTripBack.id());
+          #        _options.affectedElementsByControl(BusTripFore.id());
+          #    }
+          #
+          #}
+        ENDSOURCE
+      ENDMETHODS
+    ENDDATASOURCE
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #NumberSequenceReference
+          Table               #NumberSequenceReference
+          AllowCheck          #No
+          AllowCreate         #No
+          AllowDelete         #No
+          InsertAtEnd         #No
+          InsertIfEmpty       #No
+        ENDPROPERTIES
+        
+        FIELDLIST
+          REFERENCEFIELD NumberSequenceId
+            PROPERTIES
+            ENDPROPERTIES
+            
+            METHODS
+              SOURCE #resolveReference
+                #public Common resolveReference(FormReferenceControl _formReferenceControl)
+                #{
+                #     NumberSequenceCode code = _formReferenceControl.filterValue(
+                #        AbsoluteFieldBinding::construct(fieldStr(NumberSequenceTable, NumberSequence),
+                #        tableStr(NumberSequenceTable))).value();
+                #
+                #    // Do not call super as we're providing our own disambiguation logic.
+                #    // resolvedRecord = super(_formReferenceControl);
+                #
+                #    return NumberSequenceTable::findByNaturalKey(code, scope.getId(true));
+                #}
+              ENDSOURCE
+              SOURCE #lookupReference
+                #public Common lookupReference(FormReferenceControl _formReferenceControl)
+                #{
+                #    NumberSequenceTable     selectedRecord;
+                #    SysReferenceTableLookup sysTableLookup = SysReferenceTableLookup::newParameters(tableNum(NumberSequenceTable), _formReferenceControl, true);
+                #    Query lookupQuery;
+                #
+                #    // Do not call super as we're providing our own custom lookup logic.
+                #    // selectedRecord = super(_formReferenceControl);
+                #
+                #    // Display the Title and Department fields in the lookup form.
+                #    sysTableLookup.addLookupfield(fieldNum(NumberSequenceTable, NumberSequence));
+                #
+                #    // Create a custom Query that filters on NumberSequenceScope.
+                #    lookupQuery = new Query();
+                #    lookupQuery.addDataSource(tableNum(NumberSequenceTable)).addRange(fieldNum(NumberSequenceTable, NumberSequenceScope)).value(queryValue(scope.getId(true)));
+                #    sysTableLookup.parmQuery(lookupQuery);
+                #
+                #    // Return the record selected by the user.
+                #    selectedRecord = sysTableLookup.performFormLookup();
+                #
+                #    return selectedRecord;
+                #}
+              ENDSOURCE
+            ENDMETHODS
+          ENDREFERENCEFIELD
+          
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+        SOURCE #executeQuery
+          #void executeQuery()
+          #{
+          #    if (runExecuteDirect)
+          #    {
+          #        super();
+          #    }
+          #    else
+          #    {
+          #        runExecuteDirect = true;
+          #
+          #        this.queryRun(NumberSeqReference::buildQueryRunMulti(numberSequenceReference,
+          #                                                             tmpIdRef,
+          #                                                             numberSequenceTable,
+          #                                                             numberSequenceModules,
+          #                                                             scope));
+          #        numbersequenceReference_ds.research();
+          #    }
+          #}
+          #
+        ENDSOURCE
+        SOURCE #removeFilter
+          #void removeFilter()
+          #{
+          #    runExecuteDirect = false;
+          #    numbersequenceReference_ds.executeQuery();
+          #}
+        ENDSOURCE
+      ENDMETHODS
+    ENDDATASOURCE
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #DAPGOSIParameters
+          Table               #DAPGOSIParameters
+          AllowCheck          #No
+          AllowCreate         #No
+          AllowDelete         #No
+          LinkType            #Passive
+          InsertAtEnd         #No
+          InsertIfEmpty       #No
+        ENDPROPERTIES
+        
+        FIELDLIST
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+      ENDMETHODS
+    ENDDATASOURCE
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #DAPReportsParameters
+          Table               #DAPReportsParameters
+          AllowCreate         #No
+          AllowDelete         #No
+          InsertAtEnd         #No
+          InsertIfEmpty       #No
+        ENDPROPERTIES
+        
+        FIELDLIST
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+      ENDMETHODS
+    ENDDATASOURCE
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #DAPAccrualsLedgerSetup
+          Table               #DAPAccrualsLedgerSetup
+          AllowCreate         #No
+          AllowDelete         #No
+          InsertAtEnd         #No
+          InsertIfEmpty       #No
+        ENDPROPERTIES
+        
+        FIELDLIST
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+      ENDMETHODS
+    ENDDATASOURCE
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #DAPTimeSheetParameters
+          Table               #DAPTimeSheetParameters
+          AllowCreate         #No
+          AllowDelete         #No
+          InsertAtEnd         #No
+          InsertIfEmpty       #No
+        ENDPROPERTIES
+        
+        FIELDLIST
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+      ENDMETHODS
+    ENDDATASOURCE
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #DAPPostingJournalNames
+          Table               #DAPPostingJournalNames
+          AllowCreate         #No
+          AllowDelete         #No
+          InsertAtEnd         #No
+          InsertIfEmpty       #No
+        ENDPROPERTIES
+        
+        FIELDLIST
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+      ENDMETHODS
+    ENDDATASOURCE
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #DAPAbsenceParameters
+          Table               #DAPAbsenceParameters
+          AllowCreate         #No
+          AllowDelete         #No
+          InsertAtEnd         #No
+          InsertIfEmpty       #No
+        ENDPROPERTIES
+        
+        FIELDLIST
+          DATAFIELD AllowedFixedNoMinutes
+            PROPERTIES
+            ENDPROPERTIES
+            
+            METHODS
+              SOURCE #modified
+                #public void modified()
+                #{
+                #    super();
+                #    element.enableDisableAbsenceControls();
+                #}
+              ENDSOURCE
+            ENDMETHODS
+          ENDDATAFIELD
+          
+          DATAFIELD DAPMonthPeriod
+            PROPERTIES
+            ENDPROPERTIES
+            
+            METHODS
+              SOURCE #modified
+                #public void modified()
+                #{
+                #    super();
+                #    element.enableDisableAbsenceControls();
+                #}
+              ENDSOURCE
+            ENDMETHODS
+          ENDDATAFIELD
+          
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+        SOURCE #active
+          #public int active()
+          #{
+          #    int ret;
+          #
+          #    ret = super();
+          #
+          #    element.enableDisableAbsenceControls();
+          #
+          #    return ret;
+          #}
+        ENDSOURCE
+      ENDMETHODS
+    ENDDATASOURCE
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #DAPEosParameters
+          Table               #DAPEosParameters
+          AllowCreate         #No
+          AllowDelete         #No
+          InsertAtEnd         #No
+          InsertIfEmpty       #No
+        ENDPROPERTIES
+        
+        FIELDLIST
+          DATAFIELD EoSCalculationMethod
+            PROPERTIES
+            ENDPROPERTIES
+            
+            METHODS
+              SOURCE #modified
+                #public void modified()
+                #{
+                #    super();
+                #    element.enableDisableEoSSIControl();
+                #}
+              ENDSOURCE
+            ENDMETHODS
+          ENDDATAFIELD
+          
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+      ENDMETHODS
+    ENDDATASOURCE
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #DAPMailParameters
+          Table               #DAPMailParameters
+        ENDPROPERTIES
+        
+        FIELDLIST
+          DATAFIELD DAPMailSetup
+            PROPERTIES
+            ENDPROPERTIES
+            
+            METHODS
+              SOURCE #modified
+                #public void modified()
+                #{
+                #    super();
+                #    SettingsGrp.allowEdit(DAPMailParameters.DAPMailSetup == DAPMailSetup::DAPSetting);
+                #}
+              ENDSOURCE
+            ENDMETHODS
+          ENDDATAFIELD
+          
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+        SOURCE #active
+          #public int active()
+          #{
+          #    int ret;
+          #
+          #    ret = super();
+          #
+          #    SettingsGrp.allowEdit(DAPMailParameters.DAPMailSetup == DAPMailSetup::DAPSetting);
+          #
+          #    return ret;
+          #}
+        ENDSOURCE
+      ENDMETHODS
+    ENDDATASOURCE
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #DapGOSIPayments
+          Table               #DapGosiPayments
+          InsertIfEmpty       #No
+        ENDPROPERTIES
+        
+        FIELDLIST
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+      ENDMETHODS
+    ENDDATASOURCE
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #DapTaxParameters
+          Table               #DAPTaxParameters
+        ENDPROPERTIES
+        
+        FIELDLIST
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+      ENDMETHODS
+    ENDDATASOURCE
+  ENDOBJECTBANK
+  
+  REFERENCEDATASOURCES
+    DATASOURCE
+      OBJECTPOOL
+        PROPERTIES
+          Name                #NumberSequenceTable
+          Table               #NumberSequenceTable
+          JoinSource          #NumberSequenceReference
+          JoinRelation        #NumberSequenceTable
+        ENDPROPERTIES
+        
+        FIELDLIST
+        ENDFIELDLIST
+      ENDOBJECTPOOL
+      METHODS
+      ENDMETHODS
+    ENDDATASOURCE
+  ENDREFERENCEDATASOURCES
+  
+  JOINS
+    NumberSequenceTable NumberSequenceReference
+  ENDJOINS
+  
+  PARTREFERENCES
+  ENDPARTREFERENCES
+  
+  DESIGN
+    PROPERTIES
+      Caption             #@DAP199
+      Style               #TableOfContents
+    ENDPROPERTIES
+    
+    CONTAINER
+      CONTROL ACTIONPANE
+        PROPERTIES
+          Name                #ActionPane
+          ElementPosition     #858993458
+          HierarchyParent     #CopyOfGroup7
+          Style               #Strip
+          DataSource          #DapGOSIPayments
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL ACTIONPANE
+        PROPERTIES
+          Name                #ActionPane1
+          ElementPosition     #715827880
+          HierarchyParent     #NotificationTab
+          Style               #Strip
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL ACTIONPANE
+        PROPERTIES
+          Name                #ActionPane2
+          ElementPosition     #715827880
+          HierarchyParent     #EMAIL
+          Style               #Strip
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL ACTIONPANETAB
+        PROPERTIES
+          Name                #ActionPaneTab
+          ElementPosition     #1431655764
+          HierarchyParent     #ActionPane
+          DataSource          #DapGOSIPayments
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL ACTIONPANETAB
+        PROPERTIES
+          Name                #ActionPaneTab1
+          ElementPosition     #1431655764
+          HierarchyParent     #ActionPane1
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL ACTIONPANETAB
+        PROPERTIES
+          Name                #ActionPaneTab2
+          ElementPosition     #1431655764
+          HierarchyParent     #ActionPane2
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTONGROUP
+        PROPERTIES
+          Name                #ButtonGroup
+          ElementPosition     #1431655764
+          HierarchyParent     #ActionPaneTab2
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTONGROUP
+        PROPERTIES
+          Name                #ButtonGroup1
+          ElementPosition     #1431655764
+          HierarchyParent     #ActionPaneTab1
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTONGROUP
+        PROPERTIES
+          Name                #CopyOfButtonGroup1
+          ElementPosition     #1431655764
+          HierarchyParent     #ActionPaneTab
+          DataSource          #DapGOSIPayments
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GRID
+        PROPERTIES
+          Name                #Grid
+          Width               #Column width
+          Height              #Column height
+          ElementPosition     #1431655764
+          HierarchyParent     #GridGroup
+          MultiSelect         #No
+          ShowRowLabels       #No
+          DataSource          #NumberSequenceReference
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GRID
+        PROPERTIES
+          Name                #Grid1
+          Width               #Column width
+          ElementPosition     #1288490187
+          HierarchyParent     #CopyOfGroup7
+          DataSource          #DapGOSIPayments
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #AbsenceParametersTitle
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #AbsenceParameters
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Allocation
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage
+          DataSource          #DAPParameters
+          DataGroup           #Allocation
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Allowances
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage2
+          DataSource          #DAPParameters
+          DataGroup           #Allowances
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #AttendanceSynch
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage14
+          DataSource          #DAPParameters
+          DataGroup           #AttendanceSynch
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #AttOvertime
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage4
+          DataSource          #DAPParameters
+          DataGroup           #AttOvertime
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #body
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #GeneralTab
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #BusTrip
+          ElementPosition     #1717986916
+          HierarchyParent     #TabPage18
+          Caption             #@DAP174
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Calculation
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage15
+          DataSource          #DAPAbsenceParameters
+          DataGroup           #Calculation
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CashLedgerAccount
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #CopyOfTabPage2
+          DataSource          #DAPParameters
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Citizines_SI
+          AutoDeclaration     #Yes
+          HelpText            #@DAP2748
+          ElementPosition     #1687308579
+          HierarchyParent     #GOSI
+          Caption             #@DAP2746
+          DataSource          #DAPGOSIParameters
+          DataGroup           #SanidSI
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Citizins
+          Width               #Column width
+          ElementPosition     #613566756
+          HierarchyParent     #GOSI
+          DataSource          #DAPGOSIParameters
+          DataGroup           #Citizins
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Company
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTabPage4
+          DataSource          #DAPParameters
+          DataGroup           #Company
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfAbsenceParametersTitle
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #OBParameters
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfAllocation
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTabPage
+          DataSource          #DAPParameters
+          DataGroup           #Rounding
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfbody
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #AllocationTab
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfbody1
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #RoundingTab
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGeneralTabHeader
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #AllocationTab
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGeneralTabHeader1
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #RoundingTab
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGeneralTitle10
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #Timesheet
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGeneralTitle5
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #GOSIPmts
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGeneralTitle6
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #PayrollReport
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGeneralTitle7
+          Width               #Column width
+          ElementPosition     #1193046468
+          HierarchyParent     #NotificationTab
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGeneralTitle8
+          Width               #Column width
+          ElementPosition     #1193046468
+          HierarchyParent     #EMAIL
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGeneralTitle9
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #EosTab
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup
+          ElementPosition     #1789569704
+          HierarchyParent     #TabPage18
+          Caption             #@SYS26254
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup1
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTabPage13
+          Caption             #@SYS38404
+          DataSource          #DAPParameters
+          DataGroup           #Commission
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup10
+          Width               #Column width
+          ElementPosition     #1670265056
+          HierarchyParent     #EMAIL
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup11
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #EosTab
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup12
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #Timesheet
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup13
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #OBParameters
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup3
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #LeaveParameters
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup4
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #JournlNamesTab
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup5
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage17
+          DataSource          #DAPAbsenceParameters
+          DataGroup           #AccumulativeLeaveBalance
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup6
+          Width               #Column width
+          ElementPosition     #1533916890
+          HierarchyParent     #GOSI
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup7
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #GOSIPmts
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup8
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #PayrollReport
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfGroup9
+          Width               #Column width
+          ElementPosition     #1670265056
+          HierarchyParent     #NotificationTab
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CopyOfReportSetup
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTabPage12
+          DataSource          #DAPReportsParameters
+          DataGroup           #SIPayments
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #CustSetup
+          ElementPosition     #1073741822
+          HierarchyParent     #TabPage11
+          DataSource          #DAPMailParameters
+          DataGroup           #General
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #DAPGOSILimit
+          Width               #Column width
+          ElementPosition     #1840700268
+          HierarchyParent     #GOSI
+          DataSource          #DAPGOSIParameters
+          DataGroup           #DAPGOSILimit
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #EoCsetup
+          Width               #Column width
+          ElementPosition     #1227133512
+          HierarchyParent     #TabPage12
+          DataSource          #DAPEosParameters
+          DataGroup           #EndOfContract
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #EoS
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTabPage3
+          DataSource          #DAPParameters
+          DataGroup           #EoS
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #EoSTermination
+          Width               #Column width
+          ElementPosition     #613566756
+          HierarchyParent     #TabPage12
+          DataSource          #DAPEosParameters
+          DataGroup           #Termination
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Execuse
+          ElementPosition     #1288490187
+          HierarchyParent     #TabPage18
+          Caption             #@DAP2453
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Foreigners
+          Width               #Column width
+          ElementPosition     #1073741823
+          HierarchyParent     #GOSI
+          DataSource          #DAPGOSIParameters
+          DataGroup           #Foreigners
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #GeneralTabHeader
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #GeneralTab
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #GridGroup
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #NumSeqBody
+          Style               #BorderlessGridContainer
+          TopMargin           #0
+          BottomMargin        #0
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTabPage5
+          DataSource          #DAPParameters
+          DataGroup           #OpBalPosting
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group1
+          ElementPosition     #1932735281
+          HierarchyParent     #TabPage6
+          Caption             #@SYS31242
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group2
+          Width               #Column width
+          ElementPosition     #1717986916
+          HierarchyParent     #CopyOfGroup7
+          Columns             #2
+          ArrangeGuide        
+            ARRAY INDEX Columns 
+              #0
+              #0
+            ENDARRAY
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group3
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #AbsenceParameters
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group4
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage16
+          Caption             #@DAP1544
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group5
+          ElementPosition     #1789569705
+          HierarchyParent     #TabPage15
+          DataSource          #DAPAbsenceParameters
+          DataGroup           #FreeMinutes
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group6
+          ElementPosition     #1610612734
+          HierarchyParent     #TabPage15
+          DataSource          #DAPAbsenceParameters
+          DataGroup           #Allowed
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group7
+          ElementPosition     #1610612733
+          HierarchyParent     #EmailDurationParameters
+          Caption             #Email Duration Parameters
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Group8
+          ElementPosition     #1073741822
+          HierarchyParent     #EmailDurationParameters
+          Caption             #Allowance Parameters
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #GroupExpat
+          Width               #Column width
+          ElementPosition     #2072918240
+          HierarchyParent     #Group2
+          DataSource          #DapGOSIPayments
+          DataGroup           #Expat
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #GroupLocal
+          Width               #Column width
+          ElementPosition     #1998352834
+          HierarchyParent     #Group2
+          DataSource          #DapGOSIPayments
+          DataGroup           #Local
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #GroupSI
+          Width               #Column width
+          ElementPosition     #1533916890
+          HierarchyParent     #TabPage12
+          Caption             #Social Insurance
+          DataSource          #DAPEosParameters
+          DataGroup           #EosCalculationMethod
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #GrpCalculateAccrualsinLeave
+          ElementPosition     #1431655764
+          HierarchyParent     #CalculateAccrualsInLeave
+          DataSource          #DAPParameters
+          DataGroup           #CalAccrualsInLeave
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Header
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #NumberSeq
+          FrameType           #None
+          Style               #TOCTitleContainer
+          DataSource          #NumberSequenceReference
+          Columns             #2
+          ArrangeGuide        
+            ARRAY INDEX Columns 
+              #0
+              #0
+            ENDARRAY
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #HijriSetup1
+          ElementPosition     #1431655764
+          HierarchyParent     #HijriSetup
+          DataSource          #DAPParameters
+          DataGroup           #HijriSetup
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #JournalNames
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #TabPage7
+          DataSource          #DAPPostingJournalNames
+          DataGroup           #JournalNames
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #JournlNamesTitle
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #JournlNamesTab
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #LatendssAndAbsenceSetup
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage3
+          DataSource          #DAPAbsenceParameters
+          DataGroup           #LatendssAndAbsenceSetup
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Leave
+          ElementPosition     #858993458
+          HierarchyParent     #TabPage18
+          Caption             #@DAP95
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #LeaveAccrual
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTabPage10
+          DataSource          #DAPParameters
+          DataGroup           #LeaveAccrual
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #LeaveParametersTitle
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #LeaveParameters
+          Style               #TOCTitleContainer
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #LeaveTickets
+          Width               #Column width
+          ElementPosition     #1288490187
+          HierarchyParent     #TabPage6
+          DataSource          #DAPParameters
+          DataGroup           #LeaveTickets
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #LeaveTypeSetup
+          Width               #Column width
+          ElementPosition     #858993458
+          HierarchyParent     #TabPage6
+          DataSource          #DAPAbsenceParameters
+          DataGroup           #LeaveType
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #LedgerJournalNames
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #TabPage8
+          DataSource          #DAPAccrualsLedgerSetup
+          DataGroup           #LedgerJournalNames
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #MedicalInsurance
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTabPage8
+          DataSource          #DAPParameters
+          DataGroup           #MedicalInsurance
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #MonthCalcMethod
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage1
+          DataSource          #DAPParameters
+          DataGroup           #MonthCalcMethod
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Notifications
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage10
+          DataSource          #DAPParameters
+          DataGroup           #Notifications
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #NumSeqBody
+          Width               #Column width
+          ElementPosition     #1610612734
+          HierarchyParent     #NumberSeq
+          Style               #TOCTopicList
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #PaymentsJournalNames
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #TabPage7
+          DataSource          #DAPPostingJournalNames
+          DataGroup           #PaymentsJournalNames
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #PaymentsJournalNames1
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #TabPage8
+          DataSource          #DAPAccrualsLedgerSetup
+          DataGroup           #PaymentsJournalNames
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Performance
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage19
+          DataSource          #DAPParameters
+          DataGroup           #Performance
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Posting
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #CopyOfTabPage2
+          DataSource          #DAPParameters
+          DataGroup           #Posting
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #ReportSetup
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage9
+          DataSource          #DAPReportsParameters
+          DataGroup           #ReportSetup
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Requests
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTabPage6
+          DataSource          #DAPParameters
+          DataGroup           #Requests
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #ResignationEoS
+          Width               #Column width
+          ElementPosition     #920350134
+          HierarchyParent     #TabPage12
+          DataSource          #DAPEosParameters
+          DataGroup           #Resignation
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #RestActivities
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage13
+          DataSource          #DAPTimeSheetParameters
+          DataGroup           #RestActivities
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #SettingsGrp
+          AutoDeclaration     #Yes
+          ElementPosition     #1610612733
+          HierarchyParent     #TabPage11
+          DataSource          #DAPMailParameters
+          DataGroup           #Settings
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #Tax
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTabPage9
+          DataSource          #DAPParameters
+          DataGroup           #Tax
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #TaxCalculations
+          Width               #Column width
+          ElementPosition     #1288490187
+          HierarchyParent     #TaxParameters
+          DataSource          #DapTaxParameters
+          DataGroup           #Calculation
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #TaxExemptions
+          Width               #Column width
+          ElementPosition     #1717986916
+          HierarchyParent     #TaxParameters
+          DataSource          #DapTaxParameters
+          DataGroup           #exemptions
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #TaxGeneral
+          Width               #Column width
+          ElementPosition     #858993458
+          HierarchyParent     #TaxParameters
+          DataSource          #DapTaxParameters
+          DataGroup           #general
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #TransactionTypeSetup
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #TabPage5
+          DataSource          #DAPAbsenceParameters
+          DataGroup           #TransactionType
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #UnPaidSalaries
+          ElementPosition     #1994091957
+          HierarchyParent     #TabPage12
+          Caption             #@DAP229
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #VisaExpiry
+          Width               #Column width
+          ElementPosition     #1717986916
+          HierarchyParent     #TabPage6
+          DataSource          #DAPParameters
+          DataGroup           #VisaExpiry
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #WorkerNumSeq
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTabPage11
+          DataSource          #DAPParameters
+          DataGroup           #workerNumberSequence
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL GROUP
+        PROPERTIES
+          Name                #WorkingDaysCalc
+          Width               #Column width
+          ElementPosition     #1840700268
+          HierarchyParent     #TabPage12
+          DataSource          #DAPEosParameters
+          DataGroup           #WorkingDaysCalc
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL REFERENCEGROUP
+        PROPERTIES
+          Name                #NumberSequenceReference_NumberSequenceId
+          ElementPosition     #1073741823
+          HierarchyParent     #Grid
+          DataSource          #NumberSequenceReference
+          ReferenceField      #NumberSequenceId
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #CopyOfTab1
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfbody
+          Style               #FastTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #CopyOfTab2
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfbody1
+          Style               #FastTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #CopyOfTab3
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGroup13
+          Style               #FastTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #Tab
+          Width               #Column width
+          Height              #Column height
+          ElementPosition     #1073741823
+          Style               #VerticalTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #Tab1
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #body
+          Style               #FastTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #Tab2
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #Group3
+          Style               #FastTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #Tab3
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGroup3
+          Style               #FastTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #Tab4
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGroup4
+          Style               #FastTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #Tab5
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGroup8
+          Style               #FastTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #Tab6
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGroup9
+          Style               #FastTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #Tab7
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGroup10
+          Style               #FastTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #Tab8
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGroup11
+          Style               #FastTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TAB
+        PROPERTIES
+          Name                #Tab9
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGroup12
+          Style               #FastTabs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #AbsenceParameters
+          Width               #Column width
+          ElementPosition     #439408189
+          HierarchyParent     #Tab
+          Caption             #@DAP1663
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #AllocationTab
+          Width               #Column width
+          Height              #Column height
+          ElementPosition     #330382097
+          HierarchyParent     #Tab
+          Caption             #@SYS40906
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CalculateAccrualsInLeave
+          ElementPosition     #1891830831
+          HierarchyParent     #Tab1
+          Caption             #@DAP2823
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CopyOfTabPage
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTab2
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CopyOfTabPage10
+          Width               #Column width
+          ElementPosition     #1840700268
+          HierarchyParent     #Tab1
+          Caption             #@DAP705
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CopyOfTabPage11
+          Width               #Column width
+          ElementPosition     #1942961394
+          HierarchyParent     #Tab1
+          Caption             #@RET2626
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CopyOfTabPage12
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #Tab5
+          Caption             #Social Insurance
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CopyOfTabPage13
+          Width               #Column width
+          ElementPosition     #1073741823
+          HierarchyParent     #Tab1
+          Caption             #Commission
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CopyOfTabPage2
+          Width               #Column width
+          ElementPosition     #613566756
+          HierarchyParent     #Tab1
+          Caption             #@SYS13356
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CopyOfTabPage3
+          Width               #Column width
+          ElementPosition     #766958445
+          HierarchyParent     #Tab1
+          Caption             #@DAP232
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CopyOfTabPage4
+          Width               #Column width
+          ElementPosition     #920350134
+          HierarchyParent     #Tab1
+          Caption             #@SYS177650
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CopyOfTabPage5
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTab3
+          Caption             #@RET1389
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CopyOfTabPage6
+          Width               #Column width
+          ElementPosition     #1227133512
+          HierarchyParent     #Tab1
+          Caption             #@DAP761
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CopyOfTabPage8
+          Width               #Column width
+          ElementPosition     #1533916890
+          HierarchyParent     #Tab1
+          Caption             #@DAP17
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #CopyOfTabPage9
+          Visible             #No
+          Width               #Column width
+          ElementPosition     #1687308579
+          HierarchyParent     #Tab1
+          Caption             #@GLS92044
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #EMAIL
+          Width               #Column width
+          ElementPosition     #1420643020
+          HierarchyParent     #Tab
+          Caption             #@SYS77517
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #EmailDurationParameters
+          ElementPosition     #171798690
+          HierarchyParent     #Tab
+          Caption             #Email Setup Parameters
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #EosTab
+          Width               #Column width
+          ElementPosition     #1566011143
+          HierarchyParent     #Tab
+          Caption             #@DAP1034
+          DataSource          #DAPEosParameters
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #GeneralTab
+          Width               #Column width
+          Height              #Column height
+          ElementPosition     #257698036
+          HierarchyParent     #Tab
+          Caption             #@SYS2952
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #GOSI
+          Width               #Column width
+          ConfigurationKey    #DAPGosi
+          ElementPosition     #839170528
+          HierarchyParent     #Tab
+          Caption             #@DAP2740
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #GOSIPmts
+          Width               #Column width
+          ConfigurationKey    #DAPGosi
+          ElementPosition     #984538651
+          HierarchyParent     #Tab
+          Caption             #@DAP331
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #HijriSetup
+          ElementPosition     #2096353083
+          HierarchyParent     #Tab1
+          Caption             #Hijri Setup
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #JournlNamesTab
+          Width               #Column width
+          ElementPosition     #693802405
+          HierarchyParent     #Tab
+          Caption             #@SYS6155
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #LeaveParameters
+          Width               #Column width
+          ElementPosition     #548434282
+          HierarchyParent     #Tab
+          Caption             #@DAP1303
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #NotificationTab
+          Width               #Column width
+          ElementPosition     #1275274897
+          HierarchyParent     #Tab
+          Caption             #@SYS104383
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #NumberSeq
+          Width               #Column width
+          ElementPosition     #2002115512
+          HierarchyParent     #Tab
+          Caption             #@SYS26442
+          DataSource          #NumberSequenceReference
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #OBParameters
+          Width               #Column width
+          ElementPosition     #621118343
+          HierarchyParent     #Tab
+          Caption             #@SYS22797
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #PayrollReport
+          Visible             #No
+          Width               #Column width
+          ElementPosition     #1129906774
+          HierarchyParent     #Tab
+          Caption             #@DAP378
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #RoundingTab
+          Width               #Column width
+          Height              #Column height
+          ElementPosition     #384895143
+          HierarchyParent     #Tab
+          Caption             #@RET4849
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfTab1
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage1
+          Width               #Column width
+          ElementPosition     #306783378
+          HierarchyParent     #Tab1
+          Caption             #@SYS21899
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage10
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #Tab6
+          Caption             #@SYS104383
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage11
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #Tab7
+          Caption             #@SYS12687
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage12
+          Width               #Column width
+          ElementPosition     #1431655764
+          HierarchyParent     #Tab8
+          Caption             #@DAP233
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage13
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #Tab9
+          Caption             #@SYS716
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage14
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #Tab9
+          Caption             #@DAP1079
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage15
+          ElementPosition     #1744830461
+          HierarchyParent     #Tab2
+          Caption             #@SYS35062
+          Columns             #2
+          ArrangeGuide        
+            ARRAY INDEX Columns 
+              #0
+              #0
+            ENDARRAY
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage16
+          ElementPosition     #2045222520
+          HierarchyParent     #Tab1
+          Caption             #@SYS103643
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage17
+          ElementPosition     #1879048189
+          HierarchyParent     #Tab3
+          Caption             #@DAP99
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage18
+          ElementPosition     #2013265917
+          HierarchyParent     #Tab2
+          Caption             #@SYS26254
+          Columns             #3
+          ArrangeGuide        
+            ARRAY INDEX Columns 
+              #0
+              #0
+              #0
+            ENDARRAY
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage19
+          ElementPosition     #536870911
+          HierarchyParent     #Tab1
+          Caption             #@SYS120223
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage2
+          Width               #Column width
+          ElementPosition     #460175067
+          HierarchyParent     #Tab1
+          Caption             #@DAP308
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage3
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #Tab2
+          Caption             #@SYS80655
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage4
+          Width               #Column width
+          ElementPosition     #1476395005
+          HierarchyParent     #Tab2
+          Caption             #@DAP1509
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage5
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #Tab3
+          Caption             #@SYS480
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage6
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #Tab3
+          Caption             #@SYS11785
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage7
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #Tab4
+          Caption             #@SYS316520
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage8
+          Width               #Column width
+          ElementPosition     #1610612733
+          HierarchyParent     #Tab4
+          Caption             #@SYS82808
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TabPage9
+          Width               #Column width
+          ElementPosition     #1073741822
+          HierarchyParent     #Tab5
+          Caption             #Pay & Allowances
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #TaxParameters
+          Width               #Column width
+          ElementPosition     #1711379266
+          HierarchyParent     #Tab
+          Caption             #Tax parameters
+          DataSource          #DapTaxParameters
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL TABPAGE
+        PROPERTIES
+          Name                #Timesheet
+          Width               #Column width
+          ElementPosition     #1856747389
+          HierarchyParent     #Tab
+          Caption             #@SYS716
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL BUTTON
+        PROPERTIES
+          Name                #Button
+          ElementPosition     #1431655764
+          HierarchyParent     #ButtonGroup
+          Text                #@SYS31561
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #clicked
+            #void clicked()
+            #{
+            #    super();
+            #    try
+            #    {
+            #        DAPSendMail::SendMailToOne(DAPMailParameters.DefCC,"Test","Test");
+            #        info("@DAP2066");
+            #    }
+            #    catch
+            #    {
+            #        throw error("Please verify parameters");
+            #    }
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #CopyOfGroup5_CalculateTaxes
+          ElementPosition     #536870910
+          HierarchyParent     #TaxGeneral
+          DataSource          #DapTaxParameters
+          DataField           #CalculateTaxes
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #DAPEosParameters_CalculateUnPaidSalaries
+          ElementPosition     #1431655764
+          HierarchyParent     #UnPaidSalaries
+          DataSource          #DAPEosParameters
+          DataField           #CalculateUnPaidSalaries
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #DapGOSIPayments_isAccumulative
+          ElementPosition     #1288490187
+          HierarchyParent     #Grid1
+          BackgroundColor     #Window background
+          DataSource          #DapGOSIPayments
+          DataField           #isAccumulative
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #DapGOSIPayments_isAccumulative1
+          ElementPosition     #1610612730
+          HierarchyParent     #Group2
+          DataSource          #DapGOSIPayments
+          DataField           #isAccumulative
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #DAPParameters_UseBenAdjWF
+          ElementPosition     #1431655764
+          HierarchyParent     #Group4
+          DataSource          #DAPParameters
+          DataField           #UseBenAdjWF
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #LeaveTickt_AnnualLeaveTicket
+          ElementPosition     #858993458
+          HierarchyParent     #LeaveTickets
+          DataSource          #DAPParameters
+          DataField           #AnnualLeaveTicket
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #LeaveTickt_CashLeaveTicket
+          ElementPosition     #1288490187
+          HierarchyParent     #LeaveTickets
+          DataSource          #DAPParameters
+          DataField           #CashLeaveTicket
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #LeaveTickt_UnPaidLeaveTicket
+          ElementPosition     #1717986916
+          HierarchyParent     #LeaveTickets
+          DataSource          #DAPParameters
+          DataField           #UnPaidLeaveTicket
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #NumberSequenceReference_AllowSameAs
+          AutoDeclaration     #Yes
+          ElementPosition     #1431655764
+          HierarchyParent     #Grid
+          BackgroundColor     #Window background
+          LabelAlignment      #Right
+          DataSource          #NumberSequenceReference
+          DataField           #AllowSameAs
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL CHECKBOX
+        PROPERTIES
+          Name                #Settings_SSL
+          ElementPosition     #1717986916
+          HierarchyParent     #SettingsGrp
+          DataSource          #DAPMailParameters
+          DataField           #SSL
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #CopyOfGroup_CompensationDateForResignation
+          ElementPosition     #858993458
+          HierarchyParent     #ResignationEoS
+          DataSource          #DAPEosParameters
+          DataField           #CompensationDateForResignation
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #CopyOfGroup_HousingLastWorkingDaysForResignation
+          ElementPosition     #1288490187
+          HierarchyParent     #ResignationEoS
+          DataSource          #DAPEosParameters
+          DataField           #HousingLastWorkingDaysForResignation
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #CopyOfGroup_HousingNoticePeriodDaysForResignation
+          ElementPosition     #1717986916
+          HierarchyParent     #ResignationEoS
+          DataSource          #DAPEosParameters
+          DataField           #HousingNoticePeriodDaysForResignation
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #CopyOfGroup1_CompensationDateForEoC
+          ElementPosition     #858993458
+          HierarchyParent     #EoCsetup
+          DataSource          #DAPEosParameters
+          DataField           #CompensationDateForEoC
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #CopyOfGroup1_HousingLastWorkingDaysForEoC
+          ElementPosition     #1288490187
+          HierarchyParent     #EoCsetup
+          DataSource          #DAPEosParameters
+          DataField           #HousingLastWorkingDaysForEoC
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #CopyOfGroup1_HousingNoticePeriodDaysForEoC
+          ElementPosition     #1717986916
+          HierarchyParent     #EoCsetup
+          DataSource          #DAPEosParameters
+          DataField           #HousingNoticePeriodDaysForEoC
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #CopyOfGroup5_TaxPaymentForForeigners
+          ElementPosition     #1879048185
+          HierarchyParent     #TaxGeneral
+          DataSource          #DapTaxParameters
+          DataField           #TaxPaymentForForeigners
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #CopyOfGroup5_TaxPaymentForLocals
+          ElementPosition     #1610612730
+          HierarchyParent     #TaxGeneral
+          DataSource          #DapTaxParameters
+          DataField           #TaxPaymentForLocals
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #CopyOfGroup5_TaxPostingCurrencyConversion
+          ElementPosition     #1342177275
+          HierarchyParent     #TaxGeneral
+          DataSource          #DapTaxParameters
+          DataField           #TaxPostingCurrencyConversion
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #CustSetup_DAPMailSetup
+          ElementPosition     #572662304
+          HierarchyParent     #CustSetup
+          DataSource          #DAPMailParameters
+          DataField           #DAPMailSetup
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #DapGOSIPayments_AccumulationStartMonth
+          ElementPosition     #1879048185
+          HierarchyParent     #Group2
+          DataSource          #DapGOSIPayments
+          DataField           #AccumulationStartMonth
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #DAPParameters_LeaveWorkingDaysCalc
+          ElementPosition     #1431655764
+          HierarchyParent     #Group1
+          DataSource          #DAPParameters
+          DataField           #LeaveWorkingDaysCalc[1]
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #Group_CompensationDateForTermination
+          ElementPosition     #858993458
+          HierarchyParent     #EoSTermination
+          DataSource          #DAPEosParameters
+          DataField           #CompensationDateForTermination
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #Group_HousingLastWorkingDaysForTermination
+          ElementPosition     #1288490187
+          HierarchyParent     #EoSTermination
+          DataSource          #DAPEosParameters
+          DataField           #HousingLastWorkingDaysForTermination
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMBOBOX
+        PROPERTIES
+          Name                #Group_HousingNoticePeriodForTermination
+          ElementPosition     #1717986916
+          HierarchyParent     #EoSTermination
+          DataSource          #DAPEosParameters
+          DataField           #HousingNoticePeriodForTermination
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMMANDBUTTON
+        PROPERTIES
+          Name                #DeleteButton
+          AutoDeclaration     #Yes
+          NeededPermission    #Delete
+          ElementPosition     #1610612734
+          HierarchyParent     #CopyOfButtonGroup1
+          Text                #@SYS14425
+          ButtonDisplay       #Text & Image left
+          NormalImage         #10121
+          ImageLocation       #EmbeddedResource
+          SaveRecord          #No
+          Primary             #Yes
+          Command             #2832
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL COMMANDBUTTON
+        PROPERTIES
+          Name                #NewButton
+          NeededPermission    #Create
+          ElementPosition     #1073741822
+          HierarchyParent     #CopyOfButtonGroup1
+          ButtonDisplay       #Text & Image left
+          NormalImage         #11045
+          ImageLocation       #EmbeddedResource
+          Primary             #Yes
+          Command             #260
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #BusTripBack
+          AutoDeclaration     #Yes
+          ElementPosition     #1073741822
+          HierarchyParent     #BusTrip
+          LookupButton        #Always
+          ShowZero            #No
+          ColorScheme         #RGB
+          Label               #@SYS30441
+          LabelAlignment      #Right
+          DataSource          #DAPParameters
+          DataMethod          #BusTripbackgroundColor
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #lookup
+            #void lookup()
+            #{
+            #
+            #    super();
+            #
+            #    DAPParameters.BusTripbackgroundColor = element.lookup(this);
+            #    //DAPLatnessRanges_ds.displayOption(DAPLatnessRanges, new FormRowDisplayOption());
+            #    DAPParameters_ds.research(true);
+            #    DAPParameters_ds.refresh();
+            #}
+            #
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #BusTripFore
+          AutoDeclaration     #Yes
+          ElementPosition     #1610612733
+          HierarchyParent     #BusTrip
+          LookupButton        #Always
+          ShowZero            #No
+          ColorScheme         #RGB
+          Label               #@SYS30440
+          LabelAlignment      #Right
+          DataSource          #DAPParameters
+          DataMethod          #BusTripforeColor
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #lookup
+            #void lookup()
+            #{
+            #
+            #    super();
+            #    DAPParameters.BusTripforeColor = element.lookup(this);
+            #    //DAPLatnessRanges_ds.displayOption(DAPLatnessRanges, new FormRowDisplayOption());
+            #    DAPParameters_ds.research(true);
+            #    DAPParameters_ds.refresh();
+            #}
+            #
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #CopyOfbackgroundColor
+          AutoDeclaration     #Yes
+          ElementPosition     #1073741822
+          HierarchyParent     #Leave
+          LookupButton        #Always
+          ShowZero            #No
+          ColorScheme         #RGB
+          Label               #@SYS30441
+          LabelAlignment      #Right
+          DataSource          #DAPParameters
+          DataMethod          #backgroundColor
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #lookup
+            #void lookup()
+            #{
+            #
+            #    super();
+            #
+            #    DAPParameters.LeaveBackgroundColor = element.lookup(this);
+            #    //DAPLatnessRanges_ds.displayOption(DAPLatnessRanges, new FormRowDisplayOption());
+            #    DAPParameters_ds.research(true);
+            #    DAPParameters_ds.refresh();
+            #}
+            #
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #CopyOfforeColor
+          AutoDeclaration     #Yes
+          ElementPosition     #1610612733
+          HierarchyParent     #Leave
+          LookupButton        #Always
+          ShowZero            #No
+          ColorScheme         #RGB
+          Label               #@SYS30440
+          LabelAlignment      #Right
+          DataSource          #DAPParameters
+          DataMethod          #foreColor
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #lookup
+            #void lookup()
+            #{
+            #
+            #    super();
+            #    DAPParameters.LeaveforeColor = element.lookup(this);
+            #    //DAPLatnessRanges_ds.displayOption(DAPLatnessRanges, new FormRowDisplayOption());
+            #    DAPParameters_ds.research(true);
+            #    DAPParameters_ds.refresh();
+            #}
+            #
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #DAPParameters_AirlineTicket
+          ElementPosition     #1908874352
+          HierarchyParent     #Group7
+          DataSource          #DAPParameters
+          DataField           #AirlineTicket
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #DAPParameters_ContractEnding
+          ElementPosition     #477218588
+          HierarchyParent     #Group7
+          DataSource          #DAPParameters
+          DataField           #ContractEnding
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #DAPParameters_FurnitureAllowance
+          ElementPosition     #954437176
+          HierarchyParent     #Group7
+          DataSource          #DAPParameters
+          DataField           #FurnitureAllowance
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #DAPParameters_Housing
+          ElementPosition     #715827882
+          HierarchyParent     #Group7
+          DataSource          #DAPParameters
+          DataField           #Housing
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #DAPParameters_PassportDuration
+          ElementPosition     #1193046470
+          HierarchyParent     #Group7
+          DataSource          #DAPParameters
+          DataField           #PassportDuration
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #DAPParameters_ProbationDuration
+          ElementPosition     #1670265058
+          HierarchyParent     #Group7
+          DataSource          #DAPParameters
+          DataField           #ProbationDuration
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #DAPParameters_VisaDuration
+          ElementPosition     #1431655764
+          HierarchyParent     #Group7
+          DataSource          #DAPParameters
+          DataField           #VisaDuration
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #ExecBack
+          AutoDeclaration     #Yes
+          ElementPosition     #1073741822
+          HierarchyParent     #Execuse
+          LookupButton        #Always
+          ShowZero            #No
+          ColorScheme         #RGB
+          Label               #@SYS30441
+          LabelAlignment      #Right
+          DataSource          #DAPParameters
+          DataMethod          #ExecBackgroundColor
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #lookup
+            #void lookup()
+            #{
+            #
+            #    super();
+            #
+            #    DAPParameters.ExecusebackgroundColor = element.lookup(this);
+            #    //DAPLatnessRanges_ds.displayOption(DAPLatnessRanges, new FormRowDisplayOption());
+            #    DAPParameters_ds.research(true);
+            #    DAPParameters_ds.refresh();
+            #}
+            #
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #ExecFore
+          AutoDeclaration     #Yes
+          ElementPosition     #1610612733
+          HierarchyParent     #Execuse
+          LookupButton        #Always
+          ShowZero            #No
+          ColorScheme         #RGB
+          Label               #@SYS30440
+          LabelAlignment      #Right
+          DataSource          #DAPParameters
+          DataMethod          #ExecforeColor
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #lookup
+            #void lookup()
+            #{
+            #
+            #    super();
+            #    DAPParameters.ExecuseForecolor = element.lookup(this);
+            #    //DAPLatnessRanges_ds.displayOption(DAPLatnessRanges, new FormRowDisplayOption());
+            #    DAPParameters_ds.research(true);
+            #    DAPParameters_ds.refresh();
+            #}
+            #
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL INTEDIT
+        PROPERTIES
+          Name                #Settings_SMTPPortNumber
+          ElementPosition     #858993458
+          HierarchyParent     #SettingsGrp
+          DataSource          #DAPMailParameters
+          DataField           #SMTPPortNumber
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL MENUITEMBUTTON
+        PROPERTIES
+          Name                #MenuItemButton
+          ElementPosition     #1431655764
+          HierarchyParent     #ButtonGroup1
+          Text                #@SYS53121
+          MenuItemName        #DAPNotificationRec
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL REALEDIT
+        PROPERTIES
+          Name                #Citizins_CitizinsCompayPercentSI
+          ElementPosition     #715827882
+          HierarchyParent     #Citizines_SI
+          AllowNegative       #No
+          DataSource          #DAPGOSIParameters
+          DataField           #CitizinsCompayPercentSI
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL REALEDIT
+        PROPERTIES
+          Name                #Citizins_CitizinsEmployeePercentSI
+          ElementPosition     #1073741823
+          HierarchyParent     #Citizines_SI
+          AllowNegative       #No
+          DataSource          #DAPGOSIParameters
+          DataField           #CitizinsEmployeePercentSI
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL REALEDIT
+        PROPERTIES
+          Name                #DapGOSIPayments_AgeLimit
+          ElementPosition     #1923787428
+          HierarchyParent     #Group2
+          DataSource          #DapGOSIPayments
+          DataField           #AgeLimit
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL REALEDIT
+        PROPERTIES
+          Name                #DapGOSIPayments_Ceiling
+          ElementPosition     #1717986916
+          HierarchyParent     #Grid1
+          Label               #Ceiling
+          DataSource          #DapGOSIPayments
+          DataField           #Ceiling
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL REALEDIT
+        PROPERTIES
+          Name                #DapGOSIPayments_Ceiling1
+          ElementPosition     #1073741820
+          HierarchyParent     #Group2
+          Label               #Ceiling
+          DataSource          #DapGOSIPayments
+          DataField           #Ceiling
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL REALEDIT
+        PROPERTIES
+          Name                #Group3_CompanyShareforLocal
+          ElementPosition     #1073741822
+          HierarchyParent     #GroupLocal
+          DataSource          #DapGOSIPayments
+          DataField           #CompanyShareforLocal
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL REALEDIT
+        PROPERTIES
+          Name                #Group3_WorkerShareforLocal
+          ElementPosition     #1610612733
+          HierarchyParent     #GroupLocal
+          DataSource          #DapGOSIPayments
+          DataField           #WorkerShareforLocal
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL SEGMENTEDENTRY
+        PROPERTIES
+          Name                #CashLedgerAccount_CashLedgerAccount1
+          ElementPosition     #1431655764
+          HierarchyParent     #CashLedgerAccount
+          DataSource          #DAPParameters
+          ReferenceField      #CashLedgerAccount
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #jumpRef
+            #public void jumpRef()
+            #{
+            #ledgerDimensionDefaultAccountController.jumpRef();
+            #}
+            #
+            #
+            #
+          ENDSOURCE
+          SOURCE #loadAutoCompleteData
+            #public void loadAutoCompleteData(LoadAutoCompleteDataEventArgs _e)
+            #{
+            #super(_e);
+            #ledgerDimensionDefaultAccountController.loadAutoCompleteData(_e);
+            #}
+            #
+          ENDSOURCE
+          SOURCE #loadSegments
+            #public void loadSegments()
+            #{
+            #super();
+            #ledgerDimensionDefaultAccountController.parmControl(this);
+            #ledgerDimensionDefaultAccountController.loadSegments();
+            #}
+            #
+            #
+          ENDSOURCE
+          SOURCE #segmentValueChanged
+            #public void segmentValueChanged(SegmentValueChangedEventArgs _e)
+            #{
+            #super(_e);
+            #ledgerDimensionDefaultAccountController.segmentValueChanged(_e);
+            #}
+            #
+            #
+          ENDSOURCE
+          SOURCE #validate
+            #public boolean validate()
+            #{
+            #boolean isValid;
+            #isValid = super();
+            #isValid = ledgerDimensionDefaultAccountController.validate() && isValid;
+            #return isValid;
+            #}
+            #
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL SEGMENTEDENTRY
+        PROPERTIES
+          Name                #Group_EOSOffsetAcct
+          ElementPosition     #1073741823
+          HierarchyParent     #Group
+          DataSource          #DAPParameters
+          ReferenceField      #EOSOffsetAcct
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #jumpRef
+            #public void jumpRef()
+            #{
+            #    EOSAC.jumpRef();
+            #}
+          ENDSOURCE
+          SOURCE #loadAutoCompleteData
+            #public void loadAutoCompleteData(LoadAutoCompleteDataEventArgs _e)
+            #{
+            #    EOSAC.parmFilterLedgerPostingType(LedgerPostingType::DAP);
+            #    EOSAC.loadAutoCompleteData(_e);
+            #
+            #    super(_e);
+            #}
+          ENDSOURCE
+          SOURCE #loadSegments
+            #public void loadSegments()
+            #{
+            #    super();
+            #    EOSAC.parmControl(this);
+            #    EOSAC.loadSegments();
+            #}
+          ENDSOURCE
+          SOURCE #segmentValueChanged
+            #public void segmentValueChanged(SegmentValueChangedEventArgs _e)
+            #{
+            #    super(_e);
+            #
+            #    EOSAC.segmentValueChanged(_e);
+            #}
+          ENDSOURCE
+          SOURCE #validate
+            #public boolean validate()
+            #{
+            #    boolean isValid;
+            #
+            #    isValid = super();
+            #
+            #    //isValid = ledgerDimensionDefaultAccountController.validate() && isValid;
+            #
+            #    return isValid;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL SEGMENTEDENTRY
+        PROPERTIES
+          Name                #Group_LeaveOffsetAccount
+          ElementPosition     #1431655764
+          HierarchyParent     #Group
+          DataSource          #DAPParameters
+          ReferenceField      #LeaveOffsetAccount
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #jumpRef
+            #public void jumpRef()
+            #{
+            #    leaveAC.jumpRef();
+            #}
+          ENDSOURCE
+          SOURCE #loadAutoCompleteData
+            #public void loadAutoCompleteData(LoadAutoCompleteDataEventArgs _e)
+            #{
+            #    leaveAC.parmFilterLedgerPostingType(LedgerPostingType::DAP);
+            #    leaveAC.loadAutoCompleteData(_e);
+            #
+            #    super(_e);
+            #}
+          ENDSOURCE
+          SOURCE #loadSegments
+            #public void loadSegments()
+            #{
+            #    super();
+            #
+            #    leaveAC.parmControl(this);
+            #    leaveAC.loadSegments();
+            #}
+          ENDSOURCE
+          SOURCE #segmentValueChanged
+            #public void segmentValueChanged(SegmentValueChangedEventArgs _e)
+            #{
+            #    super(_e);
+            #
+            #    leaveAC.segmentValueChanged(_e);
+            #}
+          ENDSOURCE
+          SOURCE #validate
+            #public boolean validate()
+            #{
+            #    boolean isValid;
+            #
+            #    isValid = super();
+            #
+            #    //isValid = ledgerDimensionDefaultAccountController.validate() && isValid;
+            #
+            #    return isValid;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL SEGMENTEDENTRY
+        PROPERTIES
+          Name                #Group_LoansOffsetAccount
+          ElementPosition     #715827882
+          HierarchyParent     #Group
+          DataSource          #DAPParameters
+          ReferenceField      #LoansOffsetAccount
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #jumpRef
+            #public void jumpRef()
+            #{
+            #    LoanAC.jumpRef();
+            #}
+          ENDSOURCE
+          SOURCE #loadAutoCompleteData
+            #public void loadAutoCompleteData(LoadAutoCompleteDataEventArgs _e)
+            #{
+            #    LoanAC.parmFilterLedgerPostingType(LedgerPostingType::DAP);
+            #    LoanAC.loadAutoCompleteData(_e);
+            #
+            #    super(_e);
+            #}
+          ENDSOURCE
+          SOURCE #loadSegments
+            #public void loadSegments()
+            #{
+            #    super();
+            #    LoanAC.parmControl(this);
+            #    LoanAC.loadSegments();
+            #}
+          ENDSOURCE
+          SOURCE #segmentValueChanged
+            #public void segmentValueChanged(SegmentValueChangedEventArgs _e)
+            #{
+            #    super(_e);
+            #
+            #    LoanAC.segmentValueChanged(_e);
+            #}
+          ENDSOURCE
+          SOURCE #validate
+            #public boolean validate()
+            #{
+            #    boolean isValid;
+            #
+            #    isValid = super();
+            #
+            #    //isValid = ledgerDimensionDefaultAccountController.validate() && isValid;
+            #
+            #    return isValid;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL SEGMENTEDENTRY
+        PROPERTIES
+          Name                #Group_TicketOffsetAccount
+          ElementPosition     #1789569705
+          HierarchyParent     #Group
+          DataSource          #DAPParameters
+          ReferenceField      #TicketOffsetAccount
+        ENDPROPERTIES
+        
+        METHODS
+          SOURCE #jumpRef
+            #public void jumpRef()
+            #{
+            #    TicketAC.jumpRef();
+            #}
+          ENDSOURCE
+          SOURCE #loadAutoCompleteData
+            #public void loadAutoCompleteData(LoadAutoCompleteDataEventArgs _e)
+            #{
+            #    TicketAC.parmFilterLedgerPostingType(LedgerPostingType::DAP);
+            #    TicketAC.loadAutoCompleteData(_e);
+            #
+            #    super(_e);
+            #}
+          ENDSOURCE
+          SOURCE #loadSegments
+            #public void loadSegments()
+            #{
+            #    super();
+            #
+            #    TicketAC.parmControl(this);
+            #    TicketAC.loadSegments();
+            #}
+          ENDSOURCE
+          SOURCE #segmentValueChanged
+            #public void segmentValueChanged(SegmentValueChangedEventArgs _e)
+            #{
+            #    super(_e);
+            #
+            #    TicketAC.segmentValueChanged(_e);
+            #}
+          ENDSOURCE
+          SOURCE #validate
+            #public boolean validate()
+            #{
+            #    boolean isValid;
+            #
+            #    isValid = super();
+            #
+            #    //isValid = ledgerDimensionDefaultAccountController.validate() && isValid;
+            #
+            #    return isValid;
+            #}
+          ENDSOURCE
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #AbsenceParametersMainInsrtuction
+          ElementPosition     #1431655764
+          HierarchyParent     #AbsenceParametersTitle
+          Text                #@DAP1664
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #CopyOfAbsenceParametersMainInsrtuction
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfAbsenceParametersTitle
+          Text                #@DAP2322
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #CopyOfGeneralTabMainInstruction
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGeneralTabHeader
+          Text                #@SYS40906
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #CopyOfGeneralTabMainInstruction1
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGeneralTabHeader1
+          Text                #@RET4849
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #CopyOfStaticText10
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGeneralTitle9
+          Text                #@DAP232
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #CopyOfStaticText11
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGeneralTitle10
+          Text                #@SYS716
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #CopyOfStaticText2
+          ElementPosition     #1431655764
+          HierarchyParent     #LeaveParametersTitle
+          Text                #@DAP1303
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #CopyOfStaticText3
+          ElementPosition     #1431655764
+          HierarchyParent     #JournlNamesTitle
+          Text                #@SYS6155
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #CopyOfStaticText6
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGeneralTitle5
+          Text                #@DAP331
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #CopyOfStaticText7
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGeneralTitle6
+          Text                #@DAP378
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #CopyOfStaticText8
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGeneralTitle7
+          Text                #@DAP1304
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #CopyOfStaticText9
+          ElementPosition     #1431655764
+          HierarchyParent     #CopyOfGeneralTitle8
+          Text                #@SYS77517
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #GeneralTabMainInstruction
+          ElementPosition     #1431655764
+          HierarchyParent     #GeneralTabHeader
+          Text                #@DAP1302
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STATICTEXT
+        PROPERTIES
+          Name                #StaticText2
+          ElementPosition     #1431655764
+          HierarchyParent     #Header
+          Text                #@DAP1333
+          Style               #MainInstruction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #CopyOfLatendssAndAbsenceSetup_AbsenceTransTypeId2
+          ElementPosition     #1073741822
+          HierarchyParent     #TransactionTypeSetup
+          DataSource          #DAPAbsenceParameters
+          DataField           #AbsenceTransTypeId
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #CopyOfLatendssAndAbsenceSetup_PaidLeaveTransTypeId2
+          ElementPosition     #1610612733
+          HierarchyParent     #TransactionTypeSetup
+          DataSource          #DAPAbsenceParameters
+          DataField           #PaidLeaveTransTypeId
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #CopyOfLatendssAndAbsenceSetup1_UnPaidLeaveType1
+          ElementPosition     #1431655764
+          HierarchyParent     #LeaveTypeSetup
+          DataSource          #DAPAbsenceParameters
+          DataField           #UnPaidLeaveType
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #CopyOfReportSetup_EoSPaymentId1
+          ElementPosition     #1717986916
+          HierarchyParent     #CopyOfReportSetup
+          DataSource          #DAPReportsParameters
+          DataField           #EoSPaymentId
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #CopyOfReportSetup_FamilyPaymentId1
+          ElementPosition     #858993458
+          HierarchyParent     #CopyOfReportSetup
+          DataSource          #DAPReportsParameters
+          DataField           #FamilyPaymentId
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #CopyOfReportSetup_SandMPaymentId1
+          ElementPosition     #1288490187
+          HierarchyParent     #CopyOfReportSetup
+          DataSource          #DAPReportsParameters
+          DataField           #SandMPaymentId
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #DAPEosParameters_PaymentId
+          ElementPosition     #1431655764
+          HierarchyParent     #GroupSI
+          DataSource          #DAPEosParameters
+          DataField           #PaymentId
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #DapGOSIPayments_PaymentId
+          ElementPosition     #858993458
+          HierarchyParent     #Grid1
+          DataSource          #DapGOSIPayments
+          DataField           #PaymentId
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #DapGOSIPayments_PaymentId1
+          ElementPosition     #536870910
+          HierarchyParent     #Group2
+          DataSource          #DapGOSIPayments
+          DataField           #PaymentId
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #DAPParameters_AllowanceDeduction
+          ElementPosition     #1073741822
+          HierarchyParent     #Group8
+          Label               #Housing Allowance
+          DataSource          #DAPParameters
+          DataField           #AllowanceDeduction
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #DAPParameters_AllowancFurniture
+          ElementPosition     #1610612733
+          HierarchyParent     #Group8
+          Label               #Furniture Allowance
+          DataSource          #DAPParameters
+          DataField           #AllowancFurniture
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #Group_DefCC
+          ElementPosition     #1288490187
+          HierarchyParent     #CustSetup
+          DataSource          #DAPMailParameters
+          DataField           #DefCC
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #Group_Email
+          ElementPosition     #858993458
+          HierarchyParent     #CustSetup
+          DataSource          #DAPMailParameters
+          DataField           #Email
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #Group_Password
+          ElementPosition     #1717986916
+          HierarchyParent     #CustSetup
+          PasswordStyle       #Yes
+          DataSource          #DAPMailParameters
+          DataField           #Password
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #referenceHelp
+          AllowEdit           #No
+          Width               #Column width
+          Height              #39
+          Skip                #Yes
+          ElementPosition     #1610612733
+          HierarchyParent     #NumSeqBody
+          Border              #None
+          MultiLine           #Yes
+          ShowLabel           #No
+          DataSource          #NumberSequenceReference
+          DataMethod          #referenceHelp
+          ViewEditMode        #View
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #referenceLabel1
+          AllowEdit           #No
+          Skip                #Yes
+          ElementPosition     #715827882
+          HierarchyParent     #Grid
+          LabelAlignment      #Right
+          DataSource          #NumberSequenceReference
+          DataMethod          #referenceLabel
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #referenceSameAsLabel
+          AutoDeclaration     #Yes
+          AllowEdit           #No
+          Skip                #Yes
+          ElementPosition     #1789569705
+          HierarchyParent     #Grid
+          LabelAlignment      #Right
+          DataSource          #NumberSequenceReference
+          DataMethod          #referenceSameAsLabel
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+      CONTROL STRINGEDIT
+        PROPERTIES
+          Name                #Settings_SMTPRelayServerName
+          ElementPosition     #1288490187
+          HierarchyParent     #SettingsGrp
+          DataSource          #DAPMailParameters
+          DataField           #SMTPRelayServerName
+        ENDPROPERTIES
+        
+        METHODS
+        ENDMETHODS
+      ENDCONTROL 
+      
+    ENDCONTAINER
+    
+  ENDDESIGN
+  
+  PERMISSIONS #Permissions
+    PROPERTIES
+    ENDPROPERTIES
+    
+    PERMISSIONSET #Read
+      PROPERTIES
+      ENDPROPERTIES
+      
+      FORM #Controls
+      ENDFORM
+      
+    TABLES #Tables
+    ENDTABLES
+    
+  SERVERMETHODS #Server Methods
+  ENDSERVERMETHODS
+  
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+PERMISSIONSET #Update
+  PROPERTIES
+  ENDPROPERTIES
+  
+  FORM #Controls
+  ENDFORM
+  
+TABLES #Tables
+ENDTABLES
+
+SERVERMETHODS #Server Methods
+ENDSERVERMETHODS
+
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+PERMISSIONSET #Create
+  PROPERTIES
+  ENDPROPERTIES
+  
+  FORM #Controls
+  ENDFORM
+  
+TABLES #Tables
+ENDTABLES
+
+SERVERMETHODS #Server Methods
+ENDSERVERMETHODS
+
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+PERMISSIONSET #Delete
+  PROPERTIES
+  ENDPROPERTIES
+  
+  FORM #Controls
+  ENDFORM
+  
+TABLES #Tables
+ENDTABLES
+
+SERVERMETHODS #Server Methods
+ENDSERVERMETHODS
+
+ASSOCIATEDFORMS #Associated Forms
+ENDASSOCIATEDFORMS
+
+ENDPERMISSIONSET
+
+ENDPERMISSIONS
+
+ENDFORM
+
+
+***Element: CLS
+
+; Microsoft Dynamics AX Class: CreateAlertsForHRProcessors unloaded
+; --------------------------------------------------------------------------------
+  CLSVERSION 1
+  
+  CLASS #CreateAlertsForHRProcessors
+    PROPERTIES
+      Name                #CreateAlertsForHRProcessors
+      Extends             #RunBaseBatch
+      Origin              #{3F14BDE1-3C54-4D5C-996A-5CBE9E430766}
+    ENDPROPERTIES
+    
+    METHODS
+      SOURCE #AirTicket
+        #private boolean AirTicket()
+        #{
+        #    HcmWorker worker;
+        #    HcmEmployment employ;
+        #    boolean flag=false;
+        #    int duration , TodayDate,TodayMonth , AneversaryALertDate ,AneversaryALertMonth;
+        #    date refDate,NextMonthDate,TemporaryDate;
+        #    refDate = systemDateGet();
+        #    duration = DAPParameters::find().AirlineTicket; // taking duration how advance will email will generate in (months)
+        #    NextMonthDate=dateMthFwd(refDate,duration);
+        #    TodayMonth=mthOfYr(NextMonthDate);
+        #    TodayDate=dayOfMth(NextMonthDate);
+        #
+        #
+        #
+        #    while select * from worker
+        #        join employ where employ.Worker == worker.RecId
+        #    {
+        #        TemporaryDate=DateTimeUtil::date(employ.ValidFrom);
+        #        TemporaryDate+=1;
+        #        AneversaryALertDate = dayOfMth(TemporaryDate);
+        #        AneversaryALertMonth = mthOfYr(TemporaryDate);
+        #       if((AneversaryALertDate == TodayDate) && (TodayMonth == AneversaryALertMonth ))// date time tyoe converting to date type
+        #        {
+        #            EmpName+=worker.name();
+        #            EmpDate+=DateTimeUtil::date(employ.ValidFrom);
+        #
+        #            if(worker.email())
+        #            {
+        #                EmpID+=worker.email();
+        #
+        #
+        #            }
+        #            else{
+        #                EmpID+='Email Not Assigned';
+        #            }
+        #
+        #            flag=true;
+        #        }// if end bracket
+        #    }// while end bracket
+        #    return flag;
+        #}
+      ENDSOURCE
+      SOURCE #classDeclaration
+        #class CreateAlertsForHRProcessors extends RunBaseBatch
+        #{
+        #    container EmpID;
+        #    container EmpName;
+        #    container EmpDate;
+        #    container month_left;
+        #    container DocNumber;
+        #    container DependentName;
+        #
+        #}
+      ENDSOURCE
+      SOURCE #ContractExpirationCondition
+        #private boolean ContractExpirationCondition()
+        #{
+        #    DAPEmplContract contract;
+        #    HcmWorker _HCMWorker;
+        #    boolean flag;
+        #    int noOfMonths , monthIterator , currentDate, duration , DateContract;
+        #    date refDate,NextMonthDate,EndContractFullDate;
+        #    refDate = systemDateGet();
+        #    currentDate=dayOfMth(refDate);
+        #    duration = DAPParameters::find().ContractEnding;  // taking duration how advance will email will generate in (months)
+        #    while select validTimeState(refDate) ValidTo  from  contract
+        #
+        #        join _HCMWorker where _HCMWorker.RecId == contract.Worker
+        #
+        #    {
+        #
+        #        EndContractFullDate = contract.ValidTo;
+        #        noOfMonths=intvNo(contract.ValidTo,refDate,IntvScale::YearMonth); // checking months between Today  and end date
+        #        //if months are greater than 0 and smaller than 6 and dates are same. today date and end date.
+        #        DateContract=dayOfMth(EndContractFullDate);
+        #        if((noOfMonths<duration && noOfMonths>0) && (currentDate==DateContract))
+        #        {
+        #            //Go into the loop to find how many months are left (6 to 1)
+        #            for(monthIterator=duration;monthIterator>=1;monthIterator--)
+        #            {
+        #                NextMonthDate=dateMthFwd(refDate,monthIterator);
+        #                if(NextMonthDate==contract.ValidTo)
+        #                 {
+        #                    EmpName+=_HCMWorker.name();
+        #                    EmpDate+=contract.ValidTo;
+        #                    month_left+=monthIterator;
+        #                     if(_HCMWorker.email())
+        #                     {
+        #                        EmpID+=_HCMWorker.email();
+        #                     }
+        #                     else
+        #                     {
+        #                        EmpID+='Email Not Assigned';
+        #                     }
+        #
+        #
+        #                    flag=true;
+        #                 } // if end block
+        #            }// for end block
+        #        }// if end block
+        #    }// while end block
+        #    return flag;
+        #}
+      ENDSOURCE
+      SOURCE #furnitureAllowance
+        #private boolean furnitureAllowance()
+        #{
+        #
+        #    DAPEmplAllowancesDeductions deduction;
+        #    boolean flag;
+        #    HcmWorker _HcmWorker;
+        #    date refDate,NextMonthDate,AllownaceEndDate;
+        #    int duration;
+        #    duration = DAPParameters::find().FurnitureAllowance;  // taking duration how advance will email will generate in (months)
+        #    refDate = systemDateGet();
+        #    NextMonthDate=dateMthFwd(refDate,duration);
+        #
+        #
+        #    while select EffectiveDateTo from deduction where deduction.AllowanceDeduction== DAPParameters::find().AllowancFurniture
+        #        join _HcmWorker where _HcmWorker.RecId == deduction.Worker
+        #    {
+        #        AllownaceEndDate=deduction.EffectiveDateTo;
+        #         if(NextMonthDate == AllownaceEndDate )
+        #        {
+        #           info('ok');
+        #           EmpName+=_HCMWorker.name();
+        #
+        #            EmpDate+=deduction.EffectiveDateTo;
+        #            if(_HCMWorker.email())
+        #            {
+        #                EmpID+=_HCMWorker.email();
+        #
+        #
+        #            }
+        #            else{
+        #                EmpID+='Email Not Assigned';
+        #            }
+        #
+        #
+        #            flag=true;
+        #
+        #        }
+        #    }
+        #    return flag;
+        #
+        #}
+      ENDSOURCE
+      SOURCE #HousingAllowance
+        #private boolean HousingAllowance()
+        #{
+        #    DAPEmplAllowancesDeductions deduction;
+        #    boolean flag;
+        #    HcmWorker _HcmWorker;
+        #    int duration;
+        #    date refDate,NextMonthDate;
+        #    refDate = systemDateGet();
+        #    duration = DAPParameters::find().Housing;  // taking duration how advance will email will generate in (months)
+        #    NextMonthDate=dateMthFwd(refDate,duration);
+        #
+        #
+        #    while select EffectiveDateTo from deduction where deduction.AllowanceDeduction== DAPParameters::find().AllowanceDeduction
+        #        join _HcmWorker where _HcmWorker.RecId == deduction.Worker
+        #    {
+        #         if(NextMonthDate == deduction.EffectiveDateTo )
+        #        {
+        #
+        #            EmpName+=_HCMWorker.name();
+        #
+        #            EmpDate+=deduction.EffectiveDateTo;
+        #            if(_HCMWorker.email())
+        #            {
+        #                EmpID+=_HCMWorker.email();
+        #
+        #
+        #            }
+        #            else{
+        #                EmpID+='Email Not Assigned';
+        #            }
+        #
+        #
+        #            flag=true;
+        #
+        #        }
+        #    }
+        #    return flag;
+        #}
+      ENDSOURCE
+      SOURCE #PassportEndDate
+        #private boolean PassportEndDate()
+        #{
+        #
+        #    HcmPersonIdentificationNumber HCM;
+        #    HcmWorker _HCMWorker;
+        #    int duration;
+        #    boolean flag=false;
+        #    date refDate,NextMonthDate;
+        #    refDate = systemDateGet();
+        #    duration = DAPParameters::find().PassportDuration;  // taking duration how advance will email will generate in (months)
+        #    NextMonthDate=dateMthFwd(refDate,duration);
+        #
+        #
+        #
+        #    while select ExpiryDate, DocumentType,DocumentNum ,DependentId from HCM where HCM.DocumentType == DAPDocumentType::Passport
+        #        join _HCMWorker where HCM.Person == _HCMWorker.Person
+        #    {
+        #        if(NextMonthDate==HCM.ExpiryDate)
+        #
+        #        {
+        #
+        #            EmpName+=_HCMWorker.name();
+        #            DocNumber+=HCM.DocumentNum;
+        #            DependentName+=HCM.DependentId;
+        #            EmpDate+=HCM.ExpiryDate;
+        #            if(_HCMWorker.email())
+        #            {
+        #                EmpID+=_HCMWorker.email();
+        #
+        #
+        #            }
+        #            else{
+        #                EmpID+='Email Not Assigned';
+        #            }
+        #            info(_HCMWorker.email());
+        #
+        #            flag=true;
+        #        }
+        #    }
+        #   return flag;
+        #
+        #}
+      ENDSOURCE
+      SOURCE #ProbabtionEndDatecondition
+        #private boolean ProbabtionEndDatecondition()
+        #{
+        #    HcmWorker worker;
+        #    HcmEmployment employ;
+        #    HcmEmploymentEmployee empemp;
+        #    boolean flag=false;
+        #    int noOfMonths , monthIterator , currentDate, EndProbationOnlyDate,duration ;
+        #    date refDate,NextMonthDate,EndProbationFullDate;
+        #    duration = DAPParameters::find().ProbationDuration;  // taking duration how advance will email will generate in (months)
+        #    refDate = systemDateGet();
+        #    currentDate=dayOfMth(refDate);
+        #
+        #
+        #
+        #
+        #    while select * from worker
+        #        join employ where employ.Worker == worker.RecId
+        #        join empemp where empemp.Employment == employ.RecId
+        #
+        #    {
+        #        EndProbationFullDate = DateTimeUtil::date(empemp.ProbationEndDate);
+        #        EndProbationFullDate += 1;
+        #        EndProbationOnlyDate = dayOfMth(EndProbationFullDate);
+        #
+        #        noOfMonths = intvNo(DateTimeUtil::date(empemp.ProbationEndDate),refDate,IntvScale::YearMonth);
+        #        if((noOfMonths<=duration && noOfMonths>0) && (currentDate==EndProbationOnlyDate))// condition problem
+        #        {
+        #
+        #
+        #            for(monthIterator=duration;monthIterator>=1;monthIterator--)
+        #            {
+        #
+        #                NextMonthDate=dateMthFwd(refDate,monthIterator);
+        #                if(NextMonthDate==EndProbationFullDate)
+        #                 {
+        #
+        #                    EmpId += worker.email();
+        #                    EmpName+= worker.name();
+        #                    Empdate+=EndProbationFullDate;
+        #                    month_left+=strFmt("%1",(monthIterator));
+        #                    if(worker.email())
+        #                    {
+        #                        EmpID+=worker.email();
+        #                    }
+        #                    else
+        #                    {
+        #                        EmpID+='Email Not Assigned';
+        #                    }
+        #
+        #                 flag=true;
+        #              }// if end block
+        #         }// for end block
+        #        }// outer if end block
+        #
+        #
+        #      }// while end block
+        #
+        #
+        #    return flag;
+        #
+        #}
+      ENDSOURCE
+      SOURCE #run
+        #public void run()
+        #{
+        #
+        #    boolean PED_flag,Visa_flag,PassportFlag,contractFlag,HousingAllowanceFlag , FurnitureAllowanceFlag,AirTicketAllowance;
+        #    str _EName,_EID,_EDate,_EMonthLeft,_EDocNum,Template, Month_left_Str,_EDependentPeople ;
+        #    int conLength ,iterator;
+        #
+        #        // Employee Probabtion ENd Date Condition
+        #    PED_flag=this.ProbabtionEndDatecondition();
+        #
+        #    if(PED_flag)
+        #    {
+        #
+        #
+        #        for (iterator=1;iterator<=conLen(EmpName);iterator++)
+        #        {
+        #            _EName=strFmt("%1",conPeek(EmpName,iterator));
+        #            _EID=strFmt("%1",conPeek(EmpID,iterator));
+        #            _EDate= date2str(conPeek(EmpDate,iterator),321,DateDay::Digits2,
+        #            DateSeparator::Hyphen, // separator1
+        #            DateMonth::Digits2,
+        #            DateSeparator::Hyphen, // separator2
+        #            DateYear::Digits4);
+        #            _EMonthLeft=conPeek(month_left,iterator);
+        #            Month_left_Str=_EMonthLeft;
+        #            Template='Test';
+        #
+        #            CreateAlertsForHRProcessors::Send_Email(_EID,_EName,_EDate,Template,Month_left_Str);
+        #
+        #        }
+        #        EmpID=conNull();
+        #        EmpDate=conNull();
+        #        EmpName=conNull();
+        #        month_left=conNull();
+        #        DocNumber=conNull();
+        #
+        #    }
+        #
+        #
+        #    Visa_flag=this.VisaEndDate();
+        #    if(Visa_flag)
+        #    {
+        #       //
+        #
+        #        for (iterator=1;iterator<=conLen(EmpName);iterator++)
+        #        {
+        #            _EName=strFmt("%1",conPeek(EmpName,iterator));
+        #            _EID=strFmt("%1",conPeek(EmpID,iterator));
+        #            _EDocNum=strFmt("%1",conPeek(DocNumber,iterator));
+        #
+        #            _EDate= date2str(conPeek(EmpDate,iterator),321,DateDay::Digits2,
+        #            DateSeparator::Hyphen, // separator1
+        #            DateMonth::Digits2,
+        #            DateSeparator::Hyphen, // separator2
+        #            DateYear::Digits4);
+        #            Month_left_Str='1';
+        #            Template='Visa';
+        #            _EDependentPeople=conPeek(DependentName,iterator);
+        #            CreateAlertsForHRProcessors::Send_Email(_EID,_EName,_EDate,Template,Month_left_Str,_EDocNum,_EDependentPeople);
+        #
+        #        }
+        #        EmpID=conNull();
+        #        EmpDate=conNull();
+        #        EmpName=conNull();
+        #        month_left=conNull();
+        #        DocNumber=conNull();
+        #
+        #    }
+        #
+        #     PassportFlag=this.PassportEndDate();
+        #    if(PassportFlag)
+        #    {
+        #       //
+        #
+        #        for (iterator=1;iterator<=conLen(EmpName);iterator++)
+        #        {
+        #            _EName=strFmt("%1",conPeek(EmpName,iterator));
+        #            _EID=strFmt("%1",conPeek(EmpID,iterator));
+        #            _EDocNum=strFmt("%1",conPeek(DocNumber,iterator));
+        #            _EDate= date2str(conPeek(EmpDate,iterator),321,DateDay::Digits2,
+        #            DateSeparator::Hyphen, // separator1
+        #            DateMonth::Digits2,
+        #            DateSeparator::Hyphen, // separator2
+        #            DateYear::Digits4);
+        #            Month_left_Str='1';
+        #            Template='PassPort';
+        #            _EDependentPeople=conPeek(DependentName,iterator);
+        #
+        #
+        #
+        #
+        #            CreateAlertsForHRProcessors::Send_Email(_EID,_EName,_EDate,Template,Month_left_Str,_EDocNum,_EDependentPeople);
+        #
+        #
+        #        }
+        #        EmpID=conNull();
+        #        EmpDate=conNull();
+        #        EmpName=conNull();
+        #        month_left=conNull();
+        #        DocNumber=conNull();
+        #    }
+        #
+        #
+        #    //contractFlag=this.ContractExpirationCondition();
+        #    if(contractFlag)
+        #    {
+        #       //
+        #
+        #        for (iterator=1;iterator<=conLen(EmpName);iterator++)
+        #        {
+        #            _EName=strFmt("%1",conPeek(EmpName,iterator));
+        #            _EID=strFmt("%1",conPeek(EmpID,iterator));
+        #            _EDate= date2str(conPeek(EmpDate,iterator),321,DateDay::Digits2,
+        #            DateSeparator::Hyphen, // separator1
+        #            DateMonth::Digits2,
+        #            DateSeparator::Hyphen, // separator2
+        #            DateYear::Digits4);
+        #             _EMonthLeft=conPeek(month_left,iterator);
+        #            Month_left_Str=_EMonthLeft;
+        #            Template='Contract';
+        #
+        #            CreateAlertsForHRProcessors::Send_Email(_EID,_EName,_EDate,Template,Month_left_Str);
+        #
+        #
+        #
+        #        }
+        #        EmpID=conNull();
+        #        EmpDate=conNull();
+        #        EmpName=conNull();
+        #        month_left=conNull();
+        #        DocNumber=conNull();
+        #    }
+        #    HousingAllowanceFlag=this.HousingAllowance();
+        #
+        #    if(HousingAllowanceFlag)
+        #    {
+        #       //
+        #
+        #        for (iterator=1;iterator<=conLen(EmpName);iterator++)
+        #        {
+        #            _EName=strFmt("%1",conPeek(EmpName,iterator));
+        #            _EID=strFmt("%1",conPeek(EmpID,iterator));
+        #            _EDate= date2str(conPeek(EmpDate,iterator),321,DateDay::Digits2,
+        #            DateSeparator::Hyphen, // separator1
+        #            DateMonth::Digits2,
+        #            DateSeparator::Hyphen, // separator2
+        #            DateYear::Digits4);
+        #
+        #            Month_left_Str='1';
+        #            Template='Housing';
+        #
+        #            CreateAlertsForHRProcessors::Send_Email(_EID,_EName,_EDate,Template,Month_left_Str);
+        #
+        #
+        #
+        #        }
+        #        EmpID=conNull();
+        #        EmpDate=conNull();
+        #        EmpName=conNull();
+        #        month_left=conNull();
+        #        DocNumber=conNull();
+        #    }
+        #       FurnitureAllowanceFlag= this.furnitureAllowance();
+        #
+        #        if( FurnitureAllowanceFlag)
+        #    {
+        #       //
+        #
+        #        for (iterator=1;iterator<=conLen(EmpName);iterator++)
+        #        {
+        #            _EName=strFmt("%1",conPeek(EmpName,iterator));
+        #            _EID=strFmt("%1",conPeek(EmpID,iterator));
+        #            _EDate= date2str(conPeek(EmpDate,iterator),321,DateDay::Digits2,
+        #            DateSeparator::Hyphen, // separator1
+        #            DateMonth::Digits2,
+        #            DateSeparator::Hyphen, // separator2
+        #            DateYear::Digits4);
+        #
+        #            Month_left_Str='1';
+        #            Template='Furniture';
+        #
+        #            CreateAlertsForHRProcessors::Send_Email(_EID,_EName,_EDate,Template,Month_left_Str);
+        #
+        #
+        #
+        #        }
+        #        EmpID=conNull();
+        #        EmpDate=conNull();
+        #        EmpName=conNull();
+        #        month_left=conNull();
+        #        DocNumber=conNull();
+        #    }
+        #    AirTicketAllowance=this.AirTicket();
+        #    if(AirTicketAllowance)
+        #    {
+        #       for (iterator=1;iterator<=conLen(EmpName);iterator++)
+        #        {
+        #            _EName=strFmt("%1",conPeek(EmpName,iterator));
+        #            _EID=strFmt("%1",conPeek(EmpID,iterator));
+        #            _EDate= date2str(conPeek(EmpDate,iterator),321,DateDay::Digits2,
+        #            DateSeparator::Hyphen, // separator1
+        #            DateMonth::Digits2,
+        #            DateSeparator::Hyphen, // separator2
+        #            DateYear::Digits4);
+        #
+        #            Month_left_Str='1';
+        #            Template='AirTicket';
+        #
+        #            CreateAlertsForHRProcessors::Send_Email(_EID,_EName,_EDate,Template,Month_left_Str);
+        #
+        #
+        #
+        #        }
+        #        EmpID=conNull();
+        #        EmpDate=conNull();
+        #        EmpName=conNull();
+        #        month_left=conNull();
+        #        DocNumber=conNull();
+        #    }
+        #
+        #
+        #}
+        #
+      ENDSOURCE
+      SOURCE #VisaEndDate
+        #private boolean VisaEndDate()
+        #{
+        #    HcmPersonIdentificationNumber HCM;
+        #    HcmWorker _HCMWorker;
+        #
+        #    int duration;
+        #    boolean flag=false;
+        #    date refDate,NextMonthDate,DocExpiryDate;
+        #    refDate = systemDateGet();
+        #    duration = DAPParameters::find().PassportDuration;  // taking duration how advance will email will generate in (months)
+        #    NextMonthDate=dateMthFwd(refDate,duration);
+        #
+        #
+        #    while select ExpiryDate, DocumentType ,DocumentNum, DependentId from HCM where HCM.DocumentType == DAPDocumentType::VISA
+        #        join _HCMWorker where HCM.Person == _HCMWorker.Person
+        #    {
+        #        DocExpiryDate=HCM.ExpiryDate;
+        #        if(NextMonthDate==DocExpiryDate)
+        #        {
+        #
+        #            EmpName+=_HCMWorker.name();
+        #            DocNumber+=HCM.DocumentNum;
+        #            DependentName+=HCM.DependentId;
+        #            info(HCM.DependentId);
+        #            EmpDate+=HCM.ExpiryDate;
+        #            if(_HCMWorker.email())
+        #            {
+        #                EmpID+=_HCMWorker.email();
+        #
+        #
+        #            }
+        #            else{
+        #                EmpID+='Email Not Assigned';
+        #            }
+        #
+        #
+        #
+        #            flag=true;
+        #        }
+        #    }
+        #    return flag;
+        #}
+      ENDSOURCE
+      SOURCE #description
+        #client server static ClassDescription description()
+        #{
+        #    return "Email HR Processors Batch Job";
+        #}
+        #
+      ENDSOURCE
+      SOURCE #main
+        #static void main(Args _args)
+        #{
+        #    CreateAlertsForHRProcessors objClass = new CreateAlertsForHRProcessors();
+        #
+        #    //prompt for runbase framework dialog
+        #    if (objClass.prompt())
+        #    {
+        #       //run the process
+        #       objClass.run();
+        #    }
+        #}
+        #
+      ENDSOURCE
+      SOURCE #Send_Email
+        #static void Send_Email(str sendToStr,Str NameOfEmployee, Str ProbationDate, str template , str monthLeft , str docNum = 'Not Exists' , str DependentPeople='' )
+        #{
+        #
+        #
+        #
+        #
+        #    System.Net.Mail.MailMessage mailMessage;
+        #    System.Net.Mail.SmtpClient myMail;
+        #    System.Net.Mail.MailAddressCollection mailcoll;
+        #    System.Net.Mail.MailAddress mailFrom;
+        #    System.Net.Mail.MailAddress mailTo;
+        #    System.Net.Mail.MailAddress ccmailAddress;
+        #    System.Net.Mail.MailAddressCollection CC_Collection;
+        #
+        # // taking sending ID from Template we made we are giving Template ID here
+        #    SysEmailTable table = SysEmailTable::find(template);//emailTemplateID
+        #    SysEmailMessageTable message =SysEmailMessageTable::find(template, table.DefaultLanguage);
+        #
+        #    str  SenderMail,receiverMailAddress, CCMailAddressStr='';
+        #    SysEmailContents mailBody;
+        #    str smtpServer;
+        #    str mailSubject;
+        #    int SMTPPort;
+        #    System.Exception excObj;
+        #    Map mappings;
+        #    InteropPermission _InteropPermission;
+        #
+        #
+        #    str pwd;
+        #    /*SysEmailParameters parameters = SysEmailParameters::find();
+        #    _InteropPermission=new InteropPermission(InteropKind::ClrInterop);
+        #    _InteropPermission.assert();*/
+        #    if(sendToStr=='Email Not Assigned')
+        #    {
+        #        return;
+        #    }
+        #
+        #    if(template=='Test')
+        #    {
+        #     // mapping values on Template
+        #    mappings = new Map(Types::String,Types::String);
+        #            mappings.insert('EmpName', NameOfEmployee); // this will replace variable with actual value.
+        #            mappings.insert("efective to date",ProbationDate);
+        #            mappings.insert("EmpID", sendToStr);
+        #            mappings.insert("duration", monthLeft);
+        #            mappings.insert("subject",strFmt('CUD HR alert: Probation End Date : %1', NameOfEmployee)  );
+        #
+        #    receiverMailAddress='sohaibanwaar36@gmail.com'; // HR
+        #
+        #
+        #    }
+        #    else if (template=='Visa')
+        #    {
+        #        // mapping values on Template
+        #    mappings = new Map(Types::String,Types::String);
+        #            mappings.insert('EmpName', NameOfEmployee); // this will replace variable with actual value.
+        #            mappings.insert("efective to date",ProbationDate);
+        #            mappings.insert("EmpID", sendToStr);
+        #            mappings.insert("month", monthLeft);
+        #            mappings.insert("DocNum", docNum);
+        #            mappings.insert("DependentName", DependentPeople);
+        #            mappings.insert("subject", 'CUD HR alert: Visa Expiring');
+        #
+        #    CCMailAddressStr='ayoub@CUD.ac.ae'; //hr
+        #    receiverMailAddress=sendToStr;
+        #    }
+        #
+        #    else if (template=='PassPort')
+        #    {
+        #        // mapping values on Template
+        #    mappings = new Map(Types::String,Types::String);
+        #            mappings.insert('EmpName', NameOfEmployee); // this will replace variable with actual value.
+        #            mappings.insert("efective to date",ProbationDate);
+        #            mappings.insert("EmpID", sendToStr);
+        #            mappings.insert("month", monthLeft);
+        #            mappings.insert("DocNum", docNum);
+        #            mappings.insert("DependentName", DependentPeople);
+        #            mappings.insert("subject", 'CUD HR alert: PassPort Expiring');
+        #    CCMailAddressStr='ayoub@CUD.ac.ae';// hr
+        #    receiverMailAddress=sendToStr;
+        #    }
+        #
+        #    else if (template=='Contract')
+        #    {
+        #        // mapping values on Template
+        #    mappings = new Map(Types::String,Types::String);
+        #            mappings.insert('EmpName', NameOfEmployee); // this will replace variable with actual value.
+        #            mappings.insert("efective to date",ProbationDate);
+        #            mappings.insert("EmpID", sendToStr);
+        #            mappings.insert("duration", monthLeft);
+        #            mappings.insert("subject",strFmt('CUD HR alert: Contract End Date : %1', NameOfEmployee));
+        #
+        #    receiverMailAddress='sohaibanwaar36@gmail.com'; //
+        #
+        #
+        #    }
+        #
+        #    else if (template=='Housing')
+        #    {
+        #        // mapping values on Template
+        #    mappings = new Map(Types::String,Types::String);
+        #            mappings.insert('EmpName', NameOfEmployee); // this will replace variable with actual value.
+        #            mappings.insert("efective to date",ProbationDate);
+        #            mappings.insert("EmpID", sendToStr);
+        #            mappings.insert("duration", monthLeft);
+        #            mappings.insert("subject", strFmt('CUD HR alert: Housing Allowance Expiring : %1', NameOfEmployee));
+        #
+        #    receiverMailAddress='sohaibanwaar36@gmail.com'; // HR
+        #
+        #
+        #
+        #    }
+        #
+        #    else if (template=='Furniture')
+        #    {
+        #        // mapping values on Template
+        #    mappings = new Map(Types::String,Types::String);
+        #            mappings.insert('EmpName', NameOfEmployee); // this will replace variable with actual value.
+        #            mappings.insert("efective to date",ProbationDate);
+        #            mappings.insert("EmpID", sendToStr);
+        #            mappings.insert("month", monthLeft);
+        #            mappings.insert("subject", strFmt('CUD HR alert: Furniture Allowance Expiring : %1', NameOfEmployee));
+        #
+        #    receiverMailAddress='sohaibanwaar36@gmail.com';
+        #
+        #
+        #    }
+        #    else if (template=='AirTicket')
+        #    {
+        #        // mapping values on Template
+        #    mappings = new Map(Types::String,Types::String);
+        #            mappings.insert('EmpName', NameOfEmployee); // this will replace variable with actual value.
+        #            mappings.insert("Date",ProbationDate);
+        #            mappings.insert("EmpID", sendToStr);
+        #            mappings.insert("month", monthLeft);
+        #            mappings.insert("subject",  strFmt('CUD HR alert: Ticket: Emp name : %1', NameOfEmployee));
+        #
+        #    receiverMailAddress='sohaibanwaar36@gmail.com'; // HR
+        #
+        #    }
+        #    SenderMail='ayoub@CUD.ac.ae';
+        #
+        #
+        #    mailTo= new System.Net.Mail.MailAddress(receiverMailAddress);
+        #    mailFrom            = new System.Net.Mail.MailAddress(SenderMail,"Alert");
+        #    mailcoll            = new System.Net.Mail.MailAddressCollection();
+        #    mailBody            = SysEmailMessage::stringExpand(message.Mail,mappings);
+        #    mailSubject         = SysEmailMessage::stringExpand(message.Subject,mappings);
+        #
+        #
+        #    try
+        #    {
+        #
+        #        smtpServer            = SysEmaiLParameters::find(false).SMTPRelayServerName;// using the SMTP server ip //setup in email Parameters
+        #        mailMessage           = new System.Net.Mail.MailMessage(mailFrom,mailTo);
+        #        mailmessage.set_Subject(mailSubject);
+        #        mailmessage.set_Body(mailBody);
+        #        mailMessage.set_IsBodyHtml(true);
+        #
+        #        if(CCMailAddressStr) // if CC have value than it will add in the container
+        #        {
+        #        ccmailAddress       =new System.Net.Mail.MailAddress(CCMailAddressStr);
+        #        CC_Collection =mailMessage.get_CC();// taking refrence of BCC cotainer
+        #        CC_Collection.Add(ccmailAddress);// adding mail to container
+        #        }
+        #        SMTPPort              = SysEmaiLParameters::find(false).SMTPPortNumber;
+        #        myMail                = new System.Net.Mail.SmtpClient(smtpServer, SMTPPort);
+        #        myMail.set_UseDefaultCredentials(false);
+        #        pwd = SysEmaiLParameters::password();
+        #        receiverMailAddress=sendToStr;
+        #        myMail.Send(mailmessage);
+        #
+        #            }// try end bracket
+        #    catch
+        #    {
+        #         excObj = CLRInterop::getLastException();
+        #         if(excObj)
+        #        {
+        #            error(excObj.ToString());
+        #        }
+        #     }
+        #
+        #
+        #
+        #
+        #
+        #
+        #    mailMessage.Dispose();
+        #    CodeAccessPermission::revertAssert();
+        #
+        #
+        #    }
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+        #
+      ENDSOURCE
+    ENDMETHODS
+  ENDCLASS
+
+***Element: PRN
+
+; Microsoft Dynamics AX Project : Project1 unloaded
+; --------------------------------------------------------------------------------
+  PROJECTVERSION 2
+  
+  PROJECT #Project1
+  PRIVATE
+  PROPERTIES
+    Name                #Project1
+    Origin              #{3D696288-17F1-46F7-9130-55E9F44C7044}
+  ENDPROPERTIES
+  
+    PROJECTCLASS ProjectNode
+    BEGINNODE
+      FILETYPE 0
+      UTILTYPE 11
+      UTILOBJECTID 0
+      NODETYPE 201
+      NAME #DAPParameters
+    ENDNODE
+    BEGINNODE
+      FILETYPE 0
+      UTILTYPE 45
+      UTILOBJECTID 1029561
+      NODETYPE 329
+      NAME #CreateAlertsForHRProcessors
+    ENDNODE
+  ENDPROJECT
+  
+
+***Element: END
